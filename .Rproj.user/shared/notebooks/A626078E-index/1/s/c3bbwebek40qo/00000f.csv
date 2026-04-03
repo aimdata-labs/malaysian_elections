@@ -1,0 +1,6 @@
+"0","seats_summary |> filter(federal == ""Federal"") |> pull(seats) |> format(big.mark = "","")
+"
+"1","[1]"
+"1"," ""2,794"""
+"1","
+"
