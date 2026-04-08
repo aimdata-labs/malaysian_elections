@@ -17,6 +17,7 @@
 "0","library(viridis)"
 "0","library(stringr)"
 "0","library(sf)"
+"0","library(broom)"
 "0",""
 "0","`%out%` <- Negate(`%in%`)"
 "0","options(scipen = 100)"
