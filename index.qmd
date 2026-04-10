@@ -502,7 +502,7 @@ census_fed |>
        subtitle = "The MP of the largest constituency (Bangi) represents 27.8 times more people than the MP of the smallest constituency (Kanowit)", 
        fill = "")
 
-ggsave("./plots/parliamentary_misapportionment.png", height = 7, width = 11, units = "in")
+#ggsave("./plots/parliamentary_misapportionment.png", height = 6, width = 11, units = "in")
 ```
 
 <br>
@@ -601,13 +601,15 @@ census_fed |>
   
   plot_annotation(title = "Undervaluation of votes in Peninsula Malaysia", 
                   subtitle = "Minorities in peninsula Malaysia particularly penalised")
+
+#ggsave("./plots/undervaluation_peninsula_votes.png", height = 4, width = 6.5, units = "in")
 ```
 
 <br>
 
-The voting power of Malays (alongside other races) has been severely compromised in numerous electoral constituencies; especially in Bangi, Kota Raja, Subang, Tebrau, Damansara, Iskandar Puteri and Shah Alam. Each of these has more than 400,000 residents being represented by only one MP. 
+The voting power of Malays (alongside other races) has been compromised in numerous electoral constituencies; especially in Bangi, Kota Raja, Subang, Tebrau, Damansara, Iskandar Puteri and Shah Alam. Each of these has more than 400,000 residents being represented by only one MP. 
 
-Additionally, the vote shares of minorities in Peninsula Malaysia are particularly compromised, with their vote shares being roughly 25% less than what their population should command. Minority votes are worth less than Bumiputera votes in both the peninsula and in East Malaysia. 
+Additionally, the vote shares of minorities in Peninsula Malaysia have been particularly diluted, with their vote shares being roughly 25% less than what their populations should command. Minority votes are worth less than Bumiputera votes in both the peninsula and in East Malaysia. 
 
 The plot below breaks down Malaysia's population into two groups based on the population density of their constituency, with around 15 million people in each group. An urban vote is worth about half that of a rural vote. 
 
@@ -678,6 +680,8 @@ census_fed |>
        title = "Massive undervaluation of Pakatan Harapan votes and overvaluation of Barisan votes", 
        subtitle = "The MP of the largest constituency (Bangi) represents 27.8 times more people than the MP of the smallest constituency (Kanowit)", 
        fill = "Coalition")
+
+#ggsave("./plots/parliamentary_misapportionment_coalition.png", height = 6, width = 11, units = "in")
 ```
 
 <br>
@@ -722,15 +726,16 @@ census_dun |>
        fill = "High density") + 
   theme(strip.background = element_rect(fill = "grey20"))
  
+#ggsave("./plots/malays_density.png", height = 3, width = 6.5, units = "in")
 ```
 
 <br>
 
 On a final note in this section, Anwar Ibrahim's pledge to increase parliamentary seats in East Malaysia is counterproductive and distortionary. 
 
-A better route to appease East Malaysian voters would be to devolve more powers from the national government and increase federalism in these areas as opposed to trying to increase their parliamentary representation. They already hold an outsized influence in parliament, given the size of their populations. 
+A better route to appease East Malaysian voters would be to devolve more powers to state governments and increase federalism in these areas as opposed to trying to increase their parliamentary representation. They already hold an outsized influence in parliament, given the size of their populations. 
 
-Politically, it would be much more satisfactory to all parties to create a federal ministry for East Malaysia. This would provide clear target for accountability for East Malaysians whilst not bogging down the federal parliament with regional issues. I would call on all parties to re-examine the deals Anwar has made with East Malaysian parties to maintain his parliamentary majority. 
+Politically, it would be much more satisfactory to all parties to create a federal ministry for East Malaysia. This would provide clear target for accountability for East Malaysians whilst not bogging down the federal parliament with regional issues. I would call on all parties to re-examine the deals Anwar has made with GRS to maintain his parliamentary majority. 
 
 <br>
 
@@ -751,7 +756,7 @@ census_fed |>
        fill = "East Malaysia")
 
 
-
+#ggsave("./plots/parliamentary_misapportionment_east_malaysia.png", height = 6, width = 11, units = "in")
   
 ```
 
