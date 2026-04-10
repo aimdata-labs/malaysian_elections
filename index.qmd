@@ -3,7 +3,7 @@ title: "Malaysian Elections"
 subtitle: "Part one: Malapportionment"
 author: "Sean Ng"
 organization: "AIMdata"
-date-modified: "11 January 2026"
+date-modified: "9 April 2026"
 execute: 
   echo: false
 ---
@@ -252,7 +252,7 @@ median_age <- tribble(~year, ~median_age,
 
 Malaysia has a multi-party, first-past-the-post parliamentary system. It is a constitutional monarchy with a "federal structure with power [nominally](https://sci-hub.box/10.2139/ssrn.3048551) divided between federal and state levels, though in practice, it is highly centralised". 
 
-```{r warning=FALSE, message=FALSE}
+```{r census-summary, warning=FALSE, message=FALSE}
 census_summary <- read_csv("./data/population_malaysia.csv") |> 
   mutate(population = population * 1000) |> 
   filter(ethnicity != "overall" & age == "overall" & sex == "both") |> 
@@ -263,34 +263,33 @@ census_summary <- read_csv("./data/population_malaysia.csv") |>
 
 In 2025, [Malaysia](https://open.dosm.gov.my/) had a multi-ethnic population of 34.2 million people, with `r filter(census_summary, ethnicity == "bumi_malay") |> pull(pc)`% of the population being Malay, `r filter(census_summary, ethnicity == "chinese") |> pull(pc)`% being Chinese, `r filter(census_summary, ethnicity == "indian") |> pull(pc)`% being Indian, `r filter(census_summary, ethnicity == "bumi_other") |> pull(pc)`% being non-Malay indigenous bumiputera groups, `r filter(census_summary, ethnicity == "other_citizen") |> pull(pc)`% being other races and `r filter(census_summary, ethnicity == "other_noncitizen") |> pull(pc)`% being non-citizens. 
 
-Prior to 2018, Malaysia had been considered to have one of the least-honest and most-manipulated electoral systems in Asia, ranking 142nd out of 158 countries assessed by the Electoral Integrity Project and falling into the "Very Low/Failed" category alongside countries like Afghanistan, Zimbabwe and Vietnam. A more [recent report in 2025](https://static1.squarespace.com/static/58533f31bebafbe99c85dc9b/t/6866ad9714bd8c1f780fc489/1751559585725/Year+in+Elections+PEI+11+Report+.pdf) believes Malaysia to have one of the most-improved electoral systems, moving up into a more middling category, ranking between Myanmar and Iraq. 
+Prior to 2018, Malaysia had been considered to have one of the [least-honest and most-manipulated electoral systems](https://sci-hub.box/10.2139/ssrn.3048551) in the world, ranking 142^nd^ out of 158 countries assessed by the Electoral Integrity Project and falling into the "Very Low/Failed" category alongside countries like Afghanistan, Zimbabwe and Vietnam. A more [recent report in 2025](https://static1.squarespace.com/static/58533f31bebafbe99c85dc9b/t/6866ad9714bd8c1f780fc489/1751559585725/Year+in+Elections+PEI+11+Report+.pdf) believes Malaysia to have one of the most-improved electoral systems, moving up into a more middling category, ranking between Myanmar and Iraq. 
 
-However, the major issues facing Malaysia's electoral system remain [shockingly numerous](https://sci-hub.box/10.2139/ssrn.3048551): malapportionment (gerrymandering and vote dilution of urban and minority voters), lack of judicial independence, partisanship of the Electoral Commission and other institutions, racialisation of politics and Malay supremacism, restrictions on political speech and civil society, discrepancies in vote tallying, vote buying and clientalisation of key voting blocs, post-election manipulations, capture of institutional media by political parties and mass corruption. 
+However, the major issues facing Malaysia's electoral system remain [shockingly numerous](https://sci-hub.box/10.2139/ssrn.3048551): malapportionment, lack of judicial independence, partisanship of the Electoral Commission and other institutions, racialisation of politics and Malay supremacism, restrictions on political speech and civil society, discrepancies in vote tallying, vote buying and clientalisation of key voting blocs, post-election manipulations, capture of institutional media by political parties and mass corruption. 
 
-We will be looking through election ballot data from all Malaysian elections to explore some of these issues to quantify them. 
+We will be looking through election ballot data compiled by [Thevesh](https://github.com/Thevesh/paper-meco-results/tree/main) to explore some of these issues and quantify them. 
 
 <br><br><br>
 
 ## An overview of elections and candidates
 
-```{r}
+```{r seats-summary}
 seats_summary <- ballots |> 
   group_by(federal, date) |> 
   summarise(seats = n_distinct(seat)) |> 
   group_by(federal) |> 
   summarise(seats = sum(seats))
-
-
 ```
 
 
-Since 1955, There have been a cumulative `r seats_summary |> filter(federal == "Federal") |> pull(seats) |> format(big.mark = ",")` federal-level and `r seats_summary |> filter(federal == "State") |> pull(seats) |> format(big.mark = ",")` state-level elections involving `r ballots |> summarise(value = n_distinct(candidate_uid)) |> pull(value) |> format(big.mark = ",")` candidates. 
 
-Legislative candidates are overwhelmingly male. Analyst [Yong Pey Jung](https://www.wfd.org/commentary/strategies-inclusive-politics-and-boosting-womens-representation-malaysia) noted that it took 27 years (7 elections) for women MPs to rise above 5% of the total, and 44 years (11 elections) to surpass 10%. After 63 years of democracy, women MPs still form less than 15% of parliament: 
+Since 1955, There have been a cumulative `r seats_summary |> filter(federal == "Federal") |> pull(seats) |> format(big.mark = ",")` federal-level and `r seats_summary |> filter(federal == "State") |> pull(seats) |> format(big.mark = ",")` state-level elections involving `r ballots |> summarise(value = n_distinct(candidate_uid)) |> pull(value) |> format(big.mark = ",")` different candidates. 
+
+Legislative candidates are overwhelmingly male. Analyst [Yong Pey Jung](https://www.wfd.org/commentary/strategies-inclusive-politics-and-boosting-womens-representation-malaysia) noted that it took 27 years (7 elections) for women MPs to rise above 5% of the total, and 44 years (11 elections) to surpass 10%. After 63 years of democracy, female MPs still form less than 15% of parliament: 
 
 <br>
 
-```{r fig.height=3, sex-candidates}
+```{r candidates-sex, fig.height=3}
 
 ballots |>
   group_by(sex, federal) |> 
@@ -316,11 +315,34 @@ ballots |>
 
 <br>
 
-[Liew Chin Tong](https://liewchintong.com/2020/10/21/1990-the-election-year-that-changed-malaysia/), a DAP politician, posits that 1990 was a watershed year in Malaysian politics as it was the beginning of a nearly three-decade long period of Barisan Nasional (BN) and UMNO dominance, largely led by Mahathir Mohamad. [Strong patriarchal and patronage systems](https://eastasiaforum.org/2019/05/08/patronage-based-business-as-usual-in-new-malaysia/) culminated in Mahathir Mohamad's re-election as the world's oldest Prime Minister in 2018. 
+Elections in the post-1990 period have been dominated by incumbents and long-tenured politicians, with lower rates of participation from newer candidates. 
 
-The post-1990 election period was one dominated by incumbents and long-tenured politicians, with lower participation from newer political candidates. 
+[Liew Chin Tong](https://liewchintong.com/2020/10/21/1990-the-election-year-that-changed-malaysia/), a DAP politician, posits that 1990 was a watershed year in Malaysian politics as it was the beginning of a nearly three-decade long period of Barisan Nasional and UMNO dominance, largely led by Mahathir Mohamad. It is arguable that the culmination of [patriarchal and patronage systems](https://eastasiaforum.org/2019/05/08/patronage-based-business-as-usual-in-new-malaysia/) was Mahathir Mohamad's re-election as the world's oldest Prime Minister in 2018. 
 
-Since 1990, 10 politicians have won 8 federal or state elections, including including Ku Li, who has won 12 federal and 1 state election in his career). 
+```{r eval=FALSE}
+ballots |>  
+    mutate(
+      post_90s = ifelse(
+        date < "1990-10-20", "Jul 1955 - Sep 1990", "Oct 1990 - Jan 2026")) |> 
+    mutate(count = 1) |> 
+    group_by(post_90s, candidate_uid, federal) |> 
+    summarise(
+      count = sum(count),
+      win_count = sum(count[str_detect(result, "won")], na.rm = TRUE),
+      .groups = "drop"
+    ) |> 
+  # Manual correction because somehow the calculation is not working for Ku Li
+  mutate(win_count = ifelse(win_count == 9, 8, win_count)) |> 
+  filter(win_count > 0) |> 
+  group_by(federal, win_count, post_90s) |> 
+  summarise(candidates = n_distinct(candidate_uid), 
+            .groups = "drop") |> 
+  filter(win_count > 4) |> 
+  group_by(post_90s) |> 
+  summarise(candidates = sum(candidates))
+```
+
+In the 35 years since 1990, 205 politicians have won 5 or more federal or state elections, including including Ku Li, who has won 12 federal and 1 state election in his career). The number of politicians who won 5 or more elections in the 35 years from 1955 to 1990 was only 79. 
 
 <br>
 
@@ -340,9 +362,14 @@ ballots |>
   # Manual correction because somehow the calculation is not working for Ku Li
   mutate(win_count = ifelse(win_count == 9, 8, win_count)) |> 
   filter(win_count > 0) |> 
+  group_by(federal, win_count, post_90s) |> 
+  summarise(candidates = n_distinct(candidate_uid), 
+            .groups = "drop") |> 
   ggplot(aes(x = win_count, 
-             y = count)) + 
+             y = candidates)) + 
   geom_col(fill = "#2d708eff") + 
+  geom_text(aes(label = candidates), 
+            vjust = "inward") +
   facet_wrap(~ post_90s + federal) + 
   scale_x_continuous(breaks = seq(0, 10, 1)) +
   scale_y_continuous(labels = comma) + 
@@ -360,8 +387,7 @@ The long period of stability and ossification has resulted in politicians being 
 
 <br>
 
-```{r}
-
+```{r candidate-age}
 
 ballots |> 
   mutate(count = 1) |> 
@@ -386,7 +412,7 @@ ballots |>
   facet_wrap(~ post_90s + federal) + 
   theme(strip.background = element_rect(fill = "grey30")) +
   labs(title = "Federal and state MPs have become more aged", 
-       subtitle = "Dotted line marks the mean",
+       subtitle = "Dotted line marks the mean age",
        y = "Number of MPs", 
        x = "Age of MPs")
 
@@ -394,15 +420,13 @@ ballots |>
 
 <br>
 
-The participation of Malay candidates in federal elections was at its lowest in the 1970s, and has been increasing every decade since, and are now higher than any time except for before the formation of the federation (when elections were limited to just the peninsula). Malay politicians' participation in state elections, conversely, now at the lowest it has ever been, largely due to the large increase in Sabah and Sarawak bumi candidates. 
+The participation of Malay candidates in federal elections was at its lowest in the 1970s. However, this share has increased every decade since, and is now higher than any time except for before the formation of the federation (when elections were limited to just peninsula Malaysia). Malay politicians' participation in state elections, conversely, is now at the lowest it has ever been, largely due to increased participation from Sabah and Sarawak Bumi candidates. 
 
-The participation of Sabah and Sarawak bumis in federal elections was its highest in the 1970s, right after the formation of the federation, and has been decreasing ever since. 
-
-The share of Chinese candidates has been decreasing every decade. With regards to the population plot below, this seems to be largely in line with their decreasing share of the total population.
+The participation of Sabah and Sarawak Bumis in federal elections was at its highest in the 1970s, right after the formation of the federation, and has been decreasing ever since. The share of Chinese candidates has been decreasing every decade, though so has their share of the total population.
 
 <br>
 
-```{r}
+```{r candidate-ethnicity}
 ballots |> 
   mutate(ethnicity = ifelse(
     ethnicity == "Orang Asli", "Other", ethnicity
@@ -435,15 +459,15 @@ ballots |>
 
 # Malapportionment 
 
-Constitutional limits on malapportionment in Malaysia were relaxed in 1962 and removed entirely in 1973. In 2017, the Electoral Integrity Project ranked Malaysia's electoral boundaries as the most biased of the 155 countries assessed. 
+[Constitutional limits on malapportionment](https://penanginstitute.org/wp-content/uploads/jml/files/malapportionment/Malapportionment-Report-2.0-20161022.pdf) in Malaysia were relaxed in 1962 and removed entirely in 1973. In 2017, the Electoral Integrity Project ranked Malaysia's electoral boundaries as the most biased of the 155 countries assessed. 
 
-On the international stage, Malaysia' system of malapportionment is indefensible. By English law, except for five protected constituencies, the number of electors per constituency may vary no more than 5% of the quota of 73,393 electors. And in less proscriptive systems, like Japan, electoral districts were rearranged in 2017 so that every district does not have twice as large population as another district.
+On the international stage, Malaysia' system of malapportionment is indefensible. By [UK law](https://www.parliament.uk/about/how/elections-and-voting/constituencies/#:~:text=number%20of%20MPs-,How%20many%20people%20live%20in%20each%20parliamentary%20constituency?,constituency%2C%20covering%206.8%20square%20km.), except for five protected constituencies, the number of electors per constituency may vary no more than 5% of the quota of 73,393 electors. Even in less fair systems, like [Japan](https://fairvote.org/japan-s-electoral-unfairness-goes-deeper-than-malapportionment/), electoral districts were rearranged so that the largest district has 2.34 times more electors than the smallest district. 
 
 From the plot below, we can see the extreme deviations in constituency size in Malaysia, resulting in a vote in Kanowit being worth almost 28 times a vote in Bangi. 
 
 <br>
 
-```{r}
+```{r race-malapportionment}
 
 census_fed |> 
   mutate_at(
@@ -468,29 +492,31 @@ census_fed |>
                              population_total))) + 
   geom_col(width = 1) + 
   scale_fill_viridis_d(option = "plasma") + 
-  theme(axis.text.x = element_text(size = .5, angle = 90)) +
+  theme(axis.text.x = element_text(size = .5, angle = 90), 
+        plot.subtitle = element_text(size = 10)) +
   scale_y_continuous(labels = number_format(scale = .001, suffix = "k"), 
                      breaks = seq(0, 700000, 100000)) + 
   labs(x = "Parliamentary seat", 
        y = "Constituency population", 
        title = "Massive parliamentary misapportionment", 
-       subtitle = "The MP of the largest constituency Bangi (Bangi) represents 27.8 times more people than the MP of the smallest constituency (Kanowit)", 
+       subtitle = "The MP of the largest constituency (Bangi) represents 27.8 times more people than the MP of the smallest constituency (Kanowit)", 
        fill = "")
 
+ggsave("./plots/parliamentary_misapportionment.png", height = 7, width = 11, units = "in")
 ```
 
 <br>
 
-In spite of this massive inequality in the worth of a vote, calls for redelineation have faced numerous [political challenges](https://www.iseas.edu.sg/wp-content/uploads/2024/03/ISEAS_Perspective_2024_30.pdf). Zahid Hamidi suggested that the DAP's interest in redelineation "would be unfavourable to Malays"; this was echoed by Selangor UMNO chief. 
+In spite of this massive inequality in the worth of a vote, calls for redelineation have faced numerous [political challenges](https://www.iseas.edu.sg/wp-content/uploads/2024/03/ISEAS_Perspective_2024_30.pdf): Zahid Hamidi suggested that redelineation "would be unfavourable to Malays"; this was echoed by Selangor UMNO chief. 
 
-But let's look at the data. In the plot below, we compare each races' share of the population against their share of votes. As the census does not provide a consitutuency-level breakdown of bumiputeras, we can still divide the population into East Malaysia and Peninsula. Bumiputeras in peninsula Malaysia form 54.05% of the country's population, but 52.47% of the vote share. 
+But let's look at the data. In the plot below, we compare each races' share of the population against their share of votes. As the Department of Statistics does not provide a constituency-level breakdown of Bumiputera sub-groups, we can still divide the population into East Malaysia and Peninsula. Bumiputeras in peninsula Malaysia form 54.05% of the country's population, but 52.47% of the vote share. 
 
-Malapportionment does not benefit Malays (not that that would even be a valid argument for malapportionment). 
+Malapportionment does not benefit Malays; even if it did, it would still not be a valid argument. 
 
 
 <br>
 
-```{r fig.height=4}
+```{r race-peninsula-vote-share, fig.height=5}
 census_fed |> 
   mutate(east_malaysia = ifelse(east_malaysia == 1, "East Malaysia", "Peninsula")) |> 
   mutate_at(
@@ -579,15 +605,15 @@ census_fed |>
 
 <br>
 
-The voting power of Malays (alongside other races) have been severely compromised in numerous electoral constituencies; especially in Bangi, Kota Raja, Subang, Tebrau, Damansara, Iskandar Puteri and Shah Alam. Each of these has more than 400,000 residents being represented by only one MP. 
+The voting power of Malays (alongside other races) has been severely compromised in numerous electoral constituencies; especially in Bangi, Kota Raja, Subang, Tebrau, Damansara, Iskandar Puteri and Shah Alam. Each of these has more than 400,000 residents being represented by only one MP. 
 
-Additionally, the vote shares of minorities in Peninsula Malaysia are particularly compromised, with their vote shares being roughly 4/5 of what their population should command. 
+Additionally, the vote shares of minorities in Peninsula Malaysia are particularly compromised, with their vote shares being roughly 25% less than what their population should command. Minority votes are worth less than Bumiputera votes in both the peninsula and in East Malaysia. 
 
 The plot below breaks down Malaysia's population into two groups based on the population density of their constituency, with around 15 million people in each group. An urban vote is worth about half that of a rural vote. 
 
 <br>
 
-```{r}
+```{r urban-rural-comparison}
 
 census_fed |> 
   mutate(high_density = ifelse(population_density > 600, "Yes", "No"), 
@@ -609,10 +635,9 @@ census_fed |>
   ggplot(aes(
     x = value, 
     y = high_density
-  )) + 
+  )) +
   geom_col(aes(fill = high_density)) + 
-  scale_fill_viridis_d(begin = .2, end = .9, 
-                       option = "plasma") +
+  scale_fill_manual(values = c("#aec3b0", "#124559")) +
   facet_wrap(~ fct_rev(var), ncol = 1, scales = "free") +
   scale_x_continuous(labels = comma) + 
   guides(fill = guide_legend(reverse = TRUE)) + 
@@ -631,7 +656,7 @@ Many of these urban constituencies do tend to vote for Pakatan Harapan, as can b
 <br>
 
 
-```{r}
+```{r undervaluation-ph-votes}
 census_fed |>
   left_join(
     ballots |>
@@ -644,19 +669,20 @@ census_fed |>
                              population_total))) + 
   geom_col(width = 1) + 
   scale_fill_viridis_d(option = "magma") + 
-  theme(axis.text.x = element_text(size = .5, angle = 90)) +
+  theme(axis.text.x = element_text(size = .5, angle = 90), 
+        plot.subtitle = element_text(size = 10)) +
   scale_y_continuous(labels = number_format(scale = .001, suffix = "k"), 
                      breaks = seq(0, 700000, 50000)) + 
   labs(x = "Parliamentary seat", 
        y = "Constituency population", 
        title = "Massive undervaluation of Pakatan Harapan votes and overvaluation of Barisan votes", 
-       subtitle = "A vote in the smallest constituency (Kanowit) is is worth 27.8 votes in the largest constituency (Bangi)", 
+       subtitle = "The MP of the largest constituency (Bangi) represents 27.8 times more people than the MP of the smallest constituency (Kanowit)", 
        fill = "Coalition")
 ```
 
 <br>
 
-[ISEAS](https://www.iseas.edu.sg/wp-content/uploads/2024/03/ISEAS_Perspective_2024_30.pdf) finds no evidence that malapportionment is as much of an ethnic issue as argued by UMNO. We see from their analysis that redelineation would favour PAS as much as it would the DAP. 
+[ISEAS](https://www.iseas.edu.sg/wp-content/uploads/2024/03/ISEAS_Perspective_2024_30.pdf) also finds no evidence that malapportionment is an ethnic issue. We see from their analysis that redelineation would favour PAS as much as it would the DAP (who, surprisingly, have the same average district size). 
 
 The current malapportionment favours GPS, UMNO and GRS the most. 
 
@@ -668,11 +694,11 @@ The current malapportionment favours GPS, UMNO and GRS the most.
 
 [Arguments](https://futureresearch.my/2024/01/29/the-concept-of-rural-weightage-in-electoral-boundaries-and-the-political-power-of-malay-muslims/) that "rural weightage" has "benefited the political power of Malays, who predominantly reside in rural areas" are no longer true, given the larger proportion of Malays residing in urban constituencies. 
 
-One must question whether these arguments are misguided are have been purposefully made to preserve the political power of MPs who not only represent an extremely small slice of society, have arguably not brought consistent prosperity to their constituents and have numerous opportunities for corruption given the [lack of transparency](https://theedgemalaysia.com/node/791245) of constituency development fund spending. 
+One must question whether these arguments are merely misguided or have been purposefully made to preserve the political power of MPs who not only represent an extremely small slice of society, have arguably not brought prosperity to their constituents and have numerous opportunities for corruption given the [lack of transparency](https://theedgemalaysia.com/node/791245) of constituency development fund spending. 
 
 <br>
 
-```{r fig.height=3.5}
+```{r density-malay-population, fig.height=3.5}
 
 census_dun |> 
   mutate(population_density = population_total / area_km2, 
@@ -687,8 +713,7 @@ census_dun |>
              y = high_density)) + 
   geom_col(aes(fill = high_density)) + 
   guides(fill = guide_legend(reverse = TRUE)) + 
-  scale_fill_viridis_d(begin = .2, end = .9, 
-                       option = "plasma") +
+  scale_fill_manual(values = c("#aec3b0", "#124559")) +
   scale_x_continuous(labels = number_format(scale = 1/1000000, suffix = "M")) +
   facet_wrap(~ fct_rev(east_malaysia)) + 
   labs(title = "More Malays live in high-density areas than in rural ones", 
@@ -703,27 +728,26 @@ census_dun |>
 
 On a final note in this section, Anwar Ibrahim's pledge to increase parliamentary seats in East Malaysia is counterproductive and distortionary. 
 
-A better route to appease East Malaysian voters would be to devolve more powers from the federal government and increase federalism in these areas as opposed to trying to increase their parliamentary representation: they already hold an outsized influence in parliament, given the size of their populations. 
+A better route to appease East Malaysian voters would be to devolve more powers from the national government and increase federalism in these areas as opposed to trying to increase their parliamentary representation. They already hold an outsized influence in parliament, given the size of their populations. 
 
-Politically, it would be much more satisfactory to all parties to create a federal ministry for East Malaysia. This would provide an easy target for dissatisfaction in East Malaysia whilst not bogging down the federal parliament with regional issues. That this has not been considered calls into question what type of deals Anwar has made with East Malaysian parties to maintain his parliamentary majority.  
+Politically, it would be much more satisfactory to all parties to create a federal ministry for East Malaysia. This would provide clear target for accountability for East Malaysians whilst not bogging down the federal parliament with regional issues. I would call on all parties to re-examine the deals Anwar has made with East Malaysian parties to maintain his parliamentary majority. 
 
 <br>
 
-```{r}
+```{r east-malaysia-distortionary}
 census_fed |> 
   mutate(east_malaysia = ifelse(east_malaysia == 1, "Yes", "No")) |> 
   ggplot(aes(y = population_total, fill = fct_rev(east_malaysia), 
              x = fct_reorder(str_sub(parlimen, start = 1L, end = 5L), 
                              population_total))) + 
   geom_col(width = 1) + 
-  scale_fill_manual(values = c("#414487ff", "#7ad151ff")) +
+  scale_fill_manual(values = c("#e07a5f", "#457b9d")) +
   theme(axis.text.x = element_text(size = .5, angle = 90)) +
   scale_y_continuous(labels = number_format(scale = .001, suffix = "k"), 
                      breaks = seq(0, 700000, 50000)) + 
   labs(x = "Parliamentary seat", 
        y = "Constituency population", 
        title = "Anwar's pledge to increase parliamentary seats in East Malaysia is counterproductive and distortionary", 
-       subtitle = "A vote in the smallest constituency (Kanowit) is is worth 27.8 votes in the largest constituency (Bangi)", 
        fill = "East Malaysia")
 
 
@@ -733,14 +757,14 @@ census_fed |>
 
 <br>
 
-Further malapportionment in favour of East Malaysia will not satisfy anyone as there is no number of seats that you can give them that would allow them to outvote the peninsula. Furthermore, creating additional seats will do little to address dissatisfaction there as long as the federal government refuses the devolution of powers to the states. 
+The creation of additional seats will do little to address dissatisfaction there as long as the federal government refuses the devolution of powers to the states. 
 
 
 <br><br><br>
 
 
 
-# Rural politics and development
+# Rural poverty and development
 
 The plots below show state expenditures per capita compared to poverty incidence. The opacity of expenditures at federal constituency and state constituency (Dewan Undangan Negeri) levels limits the depth of our analysis. 
 
@@ -750,7 +774,7 @@ The federal government should investigate the reasons for this disparity and com
 
 <br>
 
-```{r fig.width=9, fig.height=6}
+```{r state-expenditures, fig.width=9, fig.height=6}
 state_expenditures |> 
   filter(category == "total") |> 
   mutate(expenditure = expenditure * 1000000) |> 
@@ -810,12 +834,12 @@ plot_annotation(
 
 Below is a simple linear model (the best we could find using the census data) to predict for the level of poverty in a state legislative assembly constituency (Dewan Undangan Negeri). 
 
-The relationships between population density, household size and poverty incidence are all well-understood and documented. However, it should be noted that there are smaller, though still significant positive relationships between income inequality (Gini), the percentage of population that are non-citizens and poverty. 
+The relationships between population density, household size and poverty incidence are all well-understood and documented. However, it should be noted that there are smaller, though still significant positive relationships, between income inequality (Gini), the percentage of population that are non-citizens and poverty. 
 
 <br> 
 
 
-```{r}
+```{r lm-poverty}
 census_dun |>
   mutate(businesses_total = businesses_agriculture + businesses_crops + 
            businesses_livestock + businesses_fisheries + businesses_forestry + 
@@ -838,69 +862,94 @@ census_dun |>
 ```
 <br> 
  
-The chart below plots the poverty incidence and percentage of non-citizens at the federal constituency level. It is notable that many of the outliers constituencies in Sabah. 
+The charts below plot the incidence of poverty against the percentage of non-citizens and the percentage of homes served with piped water. It is notable that many of the outlier constituencies are from Sabah. 
 
 <br>
 
-```{r}
+```{r developmental-challenges-east-malaysia}
 census_dun |> 
   mutate(population_poor = poverty_incidence / 100 * population_total, 
          east_malaysia = ifelse(
            str_detect(state, "Labuan|Sabah|Sarawak"), 
            "East Malaysia", 
-           "Peninsula"
-         )) |> 
-  group_by(
-    state, parlimen, east_malaysia
-  ) |> 
-  summarise(population_total = sum(population_total), 
-            nationality_non_citizen = sum(nationality_non_citizen),
-            population_poor = sum(population_poor),
-            .groups = "drop") |> 
-  mutate(
-    non_citizen_pc = nationality_non_citizen / population_total, 
-    poverty_incidence = population_poor / population_total
-  ) |> 
-  mutate(label = ifelse(
-    non_citizen_pc > .15 | poverty_incidence > .15, 
-    str_sub(parlimen, start = 6L), 
-    ""
-  )) |> 
-  arrange(desc(poverty_incidence)) |> 
-  ggplot(aes(x = non_citizen_pc, 
-             y = poverty_incidence)) + 
-  scale_x_continuous(labels = percent) + 
-  scale_y_continuous(labels = percent) +
+           "Peninsula"), 
+         non_citizen_pc = nationality_non_citizen / population_total, 
+         poverty_incidence = poverty_incidence / 100) |> 
+  ggplot(aes(y = poverty_incidence, 
+             x = non_citizen_pc)) + 
+  geom_vline(
+    aes(xintercept = mean), 
+    data = census_dun |> 
+      mutate(non_citizen_pc = nationality_non_citizen / population_total) |> 
+      summarise(mean = mean(non_citizen_pc, na.rm = TRUE)),
+    colour = "grey30", 
+    linetype = "dashed",
+    linewidth = .85
+  ) +
   geom_point(aes(colour = east_malaysia, 
-                 size = population_total), 
-             alpha = .7) + 
-  scale_colour_manual(values = c("#414487ff", "#7ad151ff")) +
-  scale_size_continuous(labels = comma) +
-  geom_text(aes(label = label), 
-            size = 2, 
-            check_overlap = FALSE) +  
+                 size = population_poor), 
+             alpha = .7) +
+  scale_size_continuous(breaks = c(0, 1000, 5000, 10000, 20000), 
+                        labels = comma) + 
+  scale_colour_manual(values = c("#e07a5f", "#457b9d")) + 
+  scale_x_continuous(labels = percent) + 
+  scale_y_continuous(labels = percent) + 
   labs(colour = "East Malaysia", 
        x = "% Non-citizens", 
        y = "Poverty incidence", 
        size = "Total population", 
-       title = "The areas with the highest levels of poverty tend to be in East Malaysia") + 
-  guides(
-    size = guide_legend(override.aes = list(alpha = 1)), 
-    colour = guide_legend(override.aes = list(alpha = 1, 
-                                              size = 3))
-  )
+       title = "Poverty outliers are in East Malaysia", 
+       subtitle = "Dotted line marks the mean for DUNs") +
+   theme(legend.position =  "none") + 
   
+census_dun |> 
+  mutate(population_poor = poverty_incidence / 100 * population_total, 
+         east_malaysia = ifelse(
+           str_detect(state, "Labuan|Sabah|Sarawak"), 
+           "East Malaysia", 
+           "Peninsula"), 
+         poverty_incidence = poverty_incidence / 100, 
+         utilities_pipedwater_home = utilities_pipedwater_home / 100, 
+         utilities_electricity_home = utilities_electricity_home / 100) |> 
+  ggplot(aes(
+    x = utilities_pipedwater_home,
+    y = poverty_incidence
+  )) + 
+  geom_vline(
+    aes(xintercept = mean), 
+    data = census_dun |> 
+      summarise(mean = mean(utilities_pipedwater_home, na.rm = TRUE) / 100),
+    colour = "grey30", 
+    linetype = "dashed",
+    linewidth = .85
+  ) + 
+  geom_point(aes(colour = east_malaysia, 
+                 size = population_poor), 
+             alpha = .7) +
+  scale_size_continuous(breaks = c(0, 1000, 5000, 10000, 20000), 
+                        labels = comma) + 
+  scale_colour_manual(values = c("#e07a5f", "#457b9d")) + 
+  scale_x_continuous(labels = percent) + 
+  scale_y_continuous(labels = percent) + 
+  labs(x = "% of homes with piped water", 
+       y = "Poverty incidence", 
+       size = "Persons who\nare poor", 
+       title = "Significant developmental challenges in East Malaysia", 
+       subtitle = "Dotted line marks the mean for DUNs", 
+       colour = "") + 
+  guides(colour = guide_legend(override.aes = list(alpha = 1, 
+                                                   size = 3)))
+
 ```
+
 
 <br>
 
-Statelessness, human trafficking and low access to [public healthcare services](https://www.sciencedirect.com/science/article/abs/pii/S1521693415001595) are some of the more complex problems facing Sabah. Furthermore, whilst Sarawak has been successful in leveraging its outsized political influence, Sabah remains [politically fractured](https://www.iseas.edu.sg/wp-content/uploads/2024/11/TRS28_24.pdf), with heavier involvement from Peninsula political parties. 
+Statelessness, human trafficking and low access to [public healthcare services](https://www.sciencedirect.com/science/article/abs/pii/S1521693415001595) are some of the more complex problems facing Sabah. Furthermore, whilst Sarawak has been successful in leveraging its outsized political influence, Sabah remains [politically fractured](https://www.iseas.edu.sg/wp-content/uploads/2024/11/TRS28_24.pdf), with heavier involvement (interference) from Peninsula political parties. 
 
-To bring this back to malapportionment, it is clear that East Malaysia's grievances are more complex than can be resolved with a simple redistricting. Many areas of East Malaysia remain economically and demographically divergent from the majority of the Malaysian population indicates that Sabah's issues should be resolved regionally, as opposed to nationally, since a targeted approach is necessary and no one-size-fits-all solution exists. 
+To bring this back to malapportionment, East Malaysia's grievances are more complex than can be resolved with a simple redistricting. The scale and severity of East Malaysia's developmental challenges require specific and targeted intervention, rather than one-size-fits-all federal legislation. 
 
-Increased federalism and greater autonomy for state governments are the correct solutions instead of further malapportionment. 
-
-
+Increased federalism and greater autonomy for state governments will empower East Malaysians far more than simple malapportionment. 
 
 
 ```{r eval=FALSE}
@@ -921,12 +970,107 @@ census_dun |>
   lm(gini ~ log(population_density), data = .) |> 
   summary()
 ```
+<br><br><br>
+
+## Malapportionment within states
+
+Malapportionment continues to be a problem at the state constituency level, though the constituencies of most states are better apportioned than the country as a whole, with Perlis being the best performer in this regard. 
+
+Penang and Selangor are both heavily urbanised and extremely malapportioned. However, seats in Kota Kinabalu contain substantially larger populations than in other parts of Sabah. Melaka stands out by not only having a large primary city, but relatively little variation in the size of its constituency populations (in comparison with other states, though this is still far above what other countries would allow). 
+
+<br>
+
+```{r fig.height=8}
+
+state_sort_order <- census_dun |> 
+  group_by(state) |> 
+  mutate(state_population = sum(population_total), 
+         min_pop = min(population_total)) |> 
+  ungroup() |> 
+  mutate(pc_population = population_total / state_population, 
+         pc_of_min = population_total / min_pop) |>
+  select(state, code_dun, population_total, pc_of_min, pc_population) |> 
+  group_by(state) |> 
+  summarise(sort = mean(pc_of_min)) |> 
+  rbind(
+    tribble(~state, ~sort, 
+            "Malaysia", 5.917384)
+  ) |> 
+  mutate(state_label = paste0(state, ", ", round(sort, 2))) |> 
+  arrange(desc(sort)) 
+
+census_dun |> 
+  group_by(state) |> 
+  mutate(state_population = sum(population_total), 
+         min_pop = min(population_total)) |> 
+  ungroup() |> 
+  mutate(pc_population = population_total / state_population, 
+         pc_of_min = population_total / min_pop) |>
+  select(state, dun, population_total, pc_of_min, pc_population) |> 
+  left_join(
+    ballots |>
+      filter(federal == "State" &
+               result %in% c("won", "won_uncontested")) |>
+      filter(date > "2000-01-01") |>
+      group_by(state, seat) |>
+      slice_max(date) |>
+      ungroup() |>
+      # just one mismatch
+      mutate(seat = ifelse(seat == "N.81 Ba'kelalan", 
+                           "N.81 Ba'Kelalan", 
+                           seat)) |> 
+      select(state, seat, coalition), 
+    by = c("state", "dun" = "seat")
+  ) |> 
+  select(state, dun, population_total, coalition) |> 
+  rbind(
+    census_fed |>
+      left_join(
+        ballots |>
+          filter(election == "GE-15" &
+                   federal == "Federal" & rank == 1) |>
+          select(parlimen = seat, coalition),
+        by = "parlimen"
+      ) |>
+      select(dun = parlimen, coalition, population_total) |>
+      mutate(state = "Malaysia")
+  ) |> 
+  left_join(state_sort_order |> 
+              select(state, state_label), 
+            by = "state") |> 
+  mutate(dun = str_sub(dun, start = 6L)) |> 
+  ggplot(aes(x = population_total, 
+             y = reorder_within(dun, population_total, state))) + 
+  geom_col(aes(fill = coalition),
+           width = 1) + 
+  scale_fill_viridis_d(option = "magma") +
+  facet_wrap(~ fct_relevel(state_label, state_sort_order |> pull(state_label)), scales = "free") +
+  scale_y_reordered() +
+  scale_x_continuous(labels = number_format(scale = 1/1000, suffix = "K")) +
+  theme(axis.text.y = element_text(size = .5), 
+        strip.background = element_rect(fill = "grey20")) + 
+  labs(title = "Malapportionment is a problem at the state level as well",
+       subtitle = "State labels include how much larger the average constituency is from the smallest constituency\nResults from most recent election", 
+       x = "Population", 
+       y = "", 
+       fill = "Coalition")
+  
+
+```
+
+<br>
+
+[ISEAS's analysis](https://www.iseas.edu.sg/wp-content/uploads/2024/03/ISEAS_Perspective_2024_30.pdf) holds true at the state level as well, with BN benefiting substantially from malapportionment and having an outsized number MPs compared to the populations of the constituencies it has won. BN is an almost entirely rural coalition, only winning urban seats in its stronghold of Johor. Conversely, Pakatan Harapan is a largely urban coalition. 
+
+That such severe malapportionment persists even in states under Pakatan Harapan control (which should be the coalition most disposed towards redelineation) speaks towards the priorities of the current government and a disregard for the fair representation of its constituents. 
 
 
+<br><br><br>
 
-
-## Data 
+# Data 
 
 The data for this report comes primarily from  [Thevesh](https://github.com/Thevesh/paper-meco-results/tree/main), who compiled the *Malaysian Election Corpus*, containing federal and state-level election results since 1955. 
 
-Additional data, including the digitised census datasets come from [JJean95](https://www.kaggle.com/datasets/jjean95/malaysia-general-election-datasets?select=census_dun.csv)
+Additional data, including the digitised census datasets, come from [JJean95](https://www.kaggle.com/datasets/jjean95/malaysia-general-election-datasets?select=census_dun.csv).
+
+In this analysis, we have used constituency populations as opposed to the number of votes because MPs represent all peoples within their constituencies, not just electors. 
