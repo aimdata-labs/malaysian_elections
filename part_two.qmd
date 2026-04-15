@@ -28,6 +28,7 @@ library(kableExtra)
 library(viridis)
 library(stringr)
 library(sf)
+library(ggmagnify)
 
 `%out%` <- Negate(`%in%`)
 options(scipen = 100)
@@ -261,6 +262,146 @@ As have already seen, most constituencies in Malaysia are multi-ethnic in nature
 
 We'll set the threshold for being included in analysis at 3% of votes 
 
+```{r}
+multiracial_races <- ballots |> 
+  mutate(ethnicity = ifelse(ethnicity == "Orang Asli", "Other", ethnicity)) |> 
+  mutate(count = 1) |> 
+  # I think this filter is fine
+  filter(rank <= 3) |> 
+  group_by(state, seat, date, federal, election) |> 
+  summarise(malay_candidates = sum(count[ethnicity == "Malay"]), 
+            chinese_candidates = sum(count[ethnicity == "Chinese"]), 
+            indian_candidates = sum(count[ethnicity == "Indian"]), 
+            sabah_candidates = sum(count[ethnicity == "Bumi Sabah"]), 
+            sarawak_candidates = sum(count[ethnicity == "Bumi Sarawak"]), 
+            other_candidates = sum(count[ethnicity == "Other"]), 
+            .groups = "drop") |> 
+  mutate(total_candidates = malay_candidates + chinese_candidates + indian_candidates + 
+           sabah_candidates + sarawak_candidates + other_candidates) |> 
+  pivot_longer(cols = malay_candidates:other_candidates, 
+               names_to = "candidate_ethnicity", 
+               values_to = "value") |> 
+  mutate(candidate_ethnicity = str_remove_all(candidate_ethnicity, "_candidates")) |> 
+  filter(value != 0) |>
+  mutate(multiracial = ifelse(value != total_candidates, 1, 0)) |> 
+  mutate(combination = ifelse(
+    multiracial == 0, paste0(candidate_ethnicity, "_only"), "multiethnic"
+  )) |> 
+  distinct(state, seat, date, federal, election, multiracial, combination)
+```
+
+```{r}
+ballots |>
+  left_join(
+    multiracial_races, 
+    by = c("state", "seat", "date", "federal", "election")
+  ) |> 
+  mutate(year = year(date), 
+         decade = year - year %% 10, 
+         count = 1) |>
+  filter(result %in% c("won", "won_uncontested")) |> 
+  group_by(
+    decade, federal, combination
+  ) |> 
+  summarise(count = sum(count), .groups = "drop") |> 
+  group_by(decade, federal) |> 
+  mutate(total = sum(count), 
+         combination = case_when(
+           combination == "sabah_only" ~ "bumi_sabah_only", 
+           combination == "sarawak_only" ~ "bumi_sarawak_only", 
+           TRUE ~ combination), 
+         combination = str_to_title(str_replace_all(combination, "_", " "))
+         ) |> 
+  ungroup() |>
+  mutate(pc = count / total) |> 
+  ggplot(aes(x = decade, y = pc, fill = fct_relevel(combination, 
+                                   c("Bumi Sabah Only", 
+                                     "Bumi Sarawak Only", 
+                                     "Chinese Only", 
+                                     "Indian Only", 
+                                     "Malay Only", 
+                                     "Other Only", 
+                                     "Multiethnic")))) + 
+  geom_col() + 
+  facet_wrap(~ federal) + 
+  scale_y_continuous(labels = percent) + 
+  scale_fill_viridis_d() + 
+  scale_x_continuous(breaks = seq(1950, 2020, 10)) +
+  labs(fill = "Combination",
+       title = "Multiethnic electoral races were least common during the 90s and 00s", 
+       x = "", 
+       y = "") + 
+  theme(strip.background = element_rect(fill = "grey20"))
+```
+
+Multiethnic were at their height in the 1950s. 
+
+```{r}
+
+```
+
+```{r}
+parlimen_geo |> glimpse()
+```
+
+
+
+```{r}
+parlimen_geo |> 
+  left_join(
+    multiracial_races |>
+      filter(federal == "Federal") |>
+      select(seat, multiracial, combination) |>
+      group_by(seat) |>
+      slice_max(order_by = multiracial) |>
+      ungroup() |>
+      distinct(seat, multiracial, combination), 
+    by = c("parlimen" = "seat") 
+  ) |> 
+  ggplot() + 
+  geom_sf(aes(fill = multiracial), 
+          linewidth = .1) + 
+  # Only one inset can work at one time
+  geom_magnify(
+    from = c(101.223422,  101.953542, 2.805661, 3.383667), 
+    to = c(105, 108, 3.5, 5.9), 
+    shadow = FALSE,
+    proj = "single"
+  ) + 
+  theme_void()
+
+```
+
+
+
+
+
+```{r}
+ballots |> 
+  mutate(ethnicity = ifelse(ethnicity == "Orang Asli", "Other", ethnicity)) |> 
+  mutate(count = 1) |> 
+  # I think this filter is fine
+  filter(rank <= 3) |> 
+  group_by(state, seat, date, federal, election) |> 
+  summarise(malay_candidates = sum(count[ethnicity == "Malay"]), 
+            chinese_candidates = sum(count[ethnicity == "Chinese"]), 
+            indian_candidates = sum(count[ethnicity == "Indian"]), 
+            sabah_candidates = sum(count[ethnicity == "Bumi Sabah"]), 
+            sarawak_candidates = sum(count[ethnicity == "Bumi Sarawak"]), 
+            other_candidates = sum(count[ethnicity == "Other"]), 
+            .groups = "drop") |> 
+  mutate(total_candidates = malay_candidates + chinese_candidates + indian_candidates + 
+           sabah_candidates + sarawak_candidates + other_candidates) |> 
+  pivot_longer(cols = malay_candidates:other_candidates, 
+               names_to = "candidate_ethnicity", 
+               values_to = "value") |> 
+  mutate(candidate_ethnicity = str_remove_all(candidate_ethnicity, "_candidates")) |> 
+  filter(value != 0) |>
+  mutate(multiracial = ifelse(value != total_candidates, 1, 0)) |> 
+  mutate(combination = ifelse(
+    multiracial == 0, paste0(candidate_ethnicity, "_only"), "multiethnic"
+  ))
+```
 
 
 ```{r}
@@ -340,18 +481,7 @@ multiracial <- ballots |>
 
 ```
 
-```{r}
-ballots |> 
-  filter(rank >= 3) |> 
-  ggplot(aes(x = votes_perc)) + 
-  geom_histogram() + 
-  geom_vline(xintercept = 3) + 
-  facet_wrap(~rank)
-```
 
-```{r}
-multiracial |> glimpse()
-```
 
 
 ```{r}
@@ -708,44 +838,7 @@ ballots |>
        y = "% of candidates", 
        x = "") 
 ```
-# News
 
-```{r}
-news_raw <- read_csv("./raw_data/news_v1.csv")
 
-news_raw |> glimpse()
 
-21 March 2004
-8 May 2008
-5 May 2013
-9 May 2018
-19 November 2022
-```
-
-This is probably not all that useful 
-since there isn't the full text of each article
-
-```{r}
-news_raw |> count(section, category)
-
-news <- news_raw |> 
-  filter(section %in% c("Metro", "News", "Opinion", "Starpicks") & 
-           category %out% c("A Winning Factor", 
-                            "At Full Swing", 
-                            "Bangkok Buzz",
-                            "Sports Box", 
-                            "Sports Guru", 
-                            "AseanPlus News",
-                            "China", 
-                            "Indonesia", 
-                            "World")) 
-
-news |> glimpse()
-```
-
-```{r}
-news |> 
-  sample_n(5) |> 
-  pull(summary)
-```
 
