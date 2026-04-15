@@ -1,6 +1,6 @@
 ---
 title: "Malaysian Elections"
-subtitle: "Part one: Malapportionment"
+subtitle: "Part one: Ethnicity"
 author: "Sean Ng"
 organization: "AIMdata"
 date-modified: "11 January 2026"
@@ -708,3 +708,44 @@ ballots |>
        y = "% of candidates", 
        x = "") 
 ```
+# News
+
+```{r}
+news_raw <- read_csv("./raw_data/news_v1.csv")
+
+news_raw |> glimpse()
+
+21 March 2004
+8 May 2008
+5 May 2013
+9 May 2018
+19 November 2022
+```
+
+This is probably not all that useful 
+since there isn't the full text of each article
+
+```{r}
+news_raw |> count(section, category)
+
+news <- news_raw |> 
+  filter(section %in% c("Metro", "News", "Opinion", "Starpicks") & 
+           category %out% c("A Winning Factor", 
+                            "At Full Swing", 
+                            "Bangkok Buzz",
+                            "Sports Box", 
+                            "Sports Guru", 
+                            "AseanPlus News",
+                            "China", 
+                            "Indonesia", 
+                            "World")) 
+
+news |> glimpse()
+```
+
+```{r}
+news |> 
+  sample_n(5) |> 
+  pull(summary)
+```
+

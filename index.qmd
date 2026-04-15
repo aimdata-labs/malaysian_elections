@@ -502,7 +502,7 @@ census_fed |>
        subtitle = "The MP of the largest constituency (Bangi) represents 27.8 times more people than the MP of the smallest constituency (Kanowit)", 
        fill = "")
 
-#ggsave("./plots/parliamentary_misapportionment.png", height = 6, width = 11, units = "in")
+#ggsave("./plots/parliamentary_misapportionment.png", height = 5.7, width = 10, units = "in")
 ```
 
 <br>
@@ -594,7 +594,7 @@ census_fed |>
   theme(legend.position = "none") +
   scale_x_continuous(labels = percent, 
                      breaks = seq(0, .8, .1)) + 
-  labs(title = "Share of votes", 
+  labs(title = "Share of votin power (legislative representation)", 
        x = "", y = "") +
   facet_wrap(~ fct_rev(east_malaysia), ncol = 1) +
   theme(strip.background = element_rect(fill = "grey20")) +
