@@ -629,7 +629,7 @@ ballots |>
   scale_y_continuous(labels = percent, breaks = seq(0, .6, .1)) +
   labs(x = "", 
        y = "Share of popular vote", 
-       title = "The collapse of UMNO has left PAS and DAP as the largest parties", 
+       title = "UMNO still has, very marginally, the largest share of votes", 
        colour = "") + 
   theme(axis.text.x = element_text(size = 7))
   
