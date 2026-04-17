@@ -160,3 +160,121 @@ census_dun |>
     colour = guide_legend(override.aes = list(alpha = 1, 
                                               size = 3))
   )
+multiracial |> 
+  mutate(count = 1) |> 
+  filter(federal == "Federal") |> 
+  summarise_at(
+    vars(malay_only, chinese_only, indian_only, 
+         sabah_only, sarawak_only, other_only, 
+         multiracial, count), 
+    ~ sum(.x, na.rm = TRUE)
+  ) |> 
+  pivot_longer(!count) |> 
+  mutate(pc = value / count) |> 
+  mutate(name = str_to_title(str_replace_all(name, "_", " "))) |> 
+  ggplot(aes(x = pc, y = fct_reorder(name, pc))) + 
+  geom_col(fill = "#e9d8a6") + 
+  geom_text(aes(label = comma(value)), 
+            hjust = "inward") +
+  scale_x_continuous(labels = percent) + 
+  labs(
+    x = "% of federal elections", 
+    y = "", 
+    title = "Ethnicity of candidates in federal elections"
+  )
+
+multiracial <- ballots |> 
+  mutate(ethnicity = ifelse(ethnicity == "Orang Asli", "Other", ethnicity)) |> 
+  mutate(count = 1) |> 
+  # I think this filter is fine
+  filter(rank <= 3) |> 
+  group_by(state, seat, date, federal, election) |> 
+  summarise(malay_candidates = sum(count[ethnicity == "Malay"]), 
+            chinese_candidates = sum(count[ethnicity == "Chinese"]), 
+            indian_candidates = sum(count[ethnicity == "Indian"]), 
+            sabah_candidates = sum(count[ethnicity == "Bumi Sabah"]), 
+            sarawak_candidates = sum(count[ethnicity == "Bumi Sarawak"]), 
+            other_candidates = sum(count[ethnicity == "Other"]), 
+            .groups = "drop") |> 
+  mutate(malay_chinese = ifelse(malay_candidates > 0 & chinese_candidates > 0, 1, 0), 
+         malay_indian = ifelse(malay_candidates > 0 & indian_candidates > 0, 1, 0), 
+         chinese_indian = ifelse(chinese_candidates > 0 & indian_candidates > 0, 1, 0), 
+         malay_sabah = ifelse(malay_candidates > 0 & sabah_candidates > 0, 1, 0), 
+         malay_sarawak = ifelse(malay_candidates > 0 & sarawak_candidates > 0, 1, 0), 
+         chinese_sabah = ifelse(chinese_candidates > 0 & sabah_candidates > 0, 1, 0), 
+         chinese_sarawak = ifelse(chinese_candidates > 0  & sarawak_candidates > 0, 1, 0), 
+         indian_sabah = ifelse(indian_candidates > 0 & sabah_candidates > 0, 1, 0), 
+         indian_sarawak = ifelse(indian_candidates > 0 & sarawak_candidates > 0, 1, 0), 
+         malay_other = ifelse(malay_candidates > 0 & other_candidates > 0, 1, 0), 
+         chinese_other = ifelse(chinese_candidates > 0 & other_candidates > 0, 1, 0), 
+         indian_other = ifelse(indian_candidates > 0 & other_candidates > 0, 1, 0), 
+         sabah_other = ifelse(sabah_candidates > 0 & other_candidates > 0, 1, 0), 
+         sarawak_other = ifelse(sarawak_candidates > 0 & other_candidates > 0, 1, 0), 
+         
+         malay_chinese_indian = ifelse(malay_candidates > 0 & chinese_candidates > 0 & 
+                                         indian_candidates > 0, 1, 0), 
+         malay_chinese_other = ifelse(malay_candidates > 0 & chinese_candidates > 0 & 
+                                        other_candidates > 0, 1, 0), 
+         malay_chinese_sabah = ifelse(malay_candidates > 0 & chinese_candidates > 0 & 
+                                        sabah_candidates > 0, 1, 0), 
+         malay_chinese_sarawak = ifelse(malay_candidates > 0 & chinese_candidates > 0 & 
+                                          sarawak_candidates > 0, 1, 0), 
+         chinese_sabah_sarawak = ifelse(chinese_candidates > 0 & sabah_candidates > 0 & 
+                                          sarawak_candidates > 0, 1, 0), 
+         sabah_sarawak_other = ifelse(sabah_candidates > 0 & sarawak_candidates > 0 & 
+                                        other_candidates > 0, 1, 0),
+         
+         malay_only = ifelse(malay_candidates > 0 & chinese_candidates == 0 & 
+                               indian_candidates == 0 & sabah_candidates == 0 & 
+                               sarawak_candidates == 0 & other_candidates == 0, 
+                             1, 0), 
+         chinese_only = ifelse(malay_candidates == 0 & chinese_candidates > 0 & 
+                                 indian_candidates == 0 & sabah_candidates == 0 & 
+                                 sarawak_candidates == 0 & other_candidates == 0, 
+                               1, 0),
+         indian_only = ifelse(malay_candidates == 0 & chinese_candidates == 0 & 
+                                indian_candidates > 0 & sabah_candidates == 0 & 
+                                sarawak_candidates == 0 & other_candidates == 0, 
+                              1, 0),
+         sabah_only = ifelse(malay_candidates == 0 & chinese_candidates == 0 & 
+                               indian_candidates == 0 & sabah_candidates > 0 & 
+                               sarawak_candidates == 0 & other_candidates == 0, 
+                             1, 0),
+         sarawak_only = ifelse(malay_candidates == 0 & chinese_candidates == 0 & 
+                                 indian_candidates == 0 & sabah_candidates == 0 & 
+                                 sarawak_candidates > 0 & other_candidates == 0, 
+                               1, 0),
+         other_only = ifelse(malay_candidates == 0 & chinese_candidates == 0 & 
+                               indian_candidates == 0 & sabah_candidates == 0 & 
+                               sarawak_candidates == 0 & other_candidates > 0, 
+                             1, 0)
+  ) |> 
+  select(state, seat, date, federal, election, malay_chinese:other_only) |> 
+  mutate(multiracial = ifelse(malay_only == 1 | chinese_only == 1 | indian_only == 1 |
+                                sabah_only == 1 | sarawak_only == 1 | other_only == 1,
+                              0, 1))  
+
+ballots |> 
+  mutate(ethnicity = ifelse(ethnicity == "Orang Asli", "Other", ethnicity)) |> 
+  mutate(count = 1) |> 
+  # I think this filter is fine
+  filter(rank <= 3) |> 
+  group_by(state, seat, date, federal, election) |> 
+  summarise(malay_candidates = sum(count[ethnicity == "Malay"]), 
+            chinese_candidates = sum(count[ethnicity == "Chinese"]), 
+            indian_candidates = sum(count[ethnicity == "Indian"]), 
+            sabah_candidates = sum(count[ethnicity == "Bumi Sabah"]), 
+            sarawak_candidates = sum(count[ethnicity == "Bumi Sarawak"]), 
+            other_candidates = sum(count[ethnicity == "Other"]), 
+            .groups = "drop") |> 
+  mutate(total_candidates = malay_candidates + chinese_candidates + indian_candidates + 
+           sabah_candidates + sarawak_candidates + other_candidates) |> 
+  pivot_longer(cols = malay_candidates:other_candidates, 
+               names_to = "candidate_ethnicity", 
+               values_to = "value") |> 
+  mutate(candidate_ethnicity = str_remove_all(candidate_ethnicity, "_candidates")) |> 
+  filter(value != 0) |>
+  mutate(multiracial = ifelse(value != total_candidates, 1, 0)) |> 
+  mutate(combination = ifelse(
+    multiracial == 0, paste0(candidate_ethnicity, "_only"), "multiethnic"
+  ))

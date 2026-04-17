@@ -29,6 +29,7 @@ library(viridis)
 library(stringr)
 library(sf)
 library(ggmagnify)
+library(ggthemes)
 
 `%out%` <- Negate(`%in%`)
 options(scipen = 100)
@@ -51,61 +52,12 @@ last_comma <- function(x, sep = ","){
 
 ```{r data}
 
-candidates <- rbind(
-  read_csv("./data/candidates_ge12.csv") |>
-    mutate(election = "ge12", new_mp = NA_real_), 
-  read_csv("./data/candidates_ge13.csv") |>
-    mutate(election = "ge13", new_mp = NA_real_), 
-  read_csv("./data/candidates_ge14.csv") |>
-    mutate(election = "ge14", new_mp = NA_real_), 
-  read_csv("./data/candidates_ge15.csv") |>
-    mutate(election = "ge15") |>
-    select(-name) |>
-    rename(name = name_display)) 
-
-results <- rbind(
-  read_csv("./data/results_parlimen_ge12.csv"),
-  read_csv("./data/results_parlimen_ge13.csv"),
-  read_csv("./data/results_parlimen_ge14.csv"),
-  read_csv("./data/results_parlimen_ge15.csv")
-)
-
 census_dun <- read_csv("./data/census_dun.csv") |> 
   mutate(population_bumi = ethnicity_proportion_bumi * population_total / 100, 
          population_chinese = ethnicity_proportion_chinese * population_total/ 100, 
          population_indian = ethnicity_proportion_indian * population_total / 100, 
          population_other = ethnicity_proportion_other * population_total / 100)
 
-voters_ge15 <- read_csv("./data/voters_ge15.csv")
-
-candidates <- candidates |> 
-  left_join(
-    candidates |> 
-      group_by(parlimen, election) |> 
-      summarise(total_votes = sum(votes)), 
-    by = c("parlimen", "election")
-  ) |> 
-  mutate(vote_share = votes / total_votes) |> 
-  ungroup() |> 
-  # Result in errors where both candidates won
-  mutate(result = 
-           case_when(
-             votes == 15495 & election == "ge13" & parlimen == "P.170 Tuaran" ~ 
-               0, 
-             votes == 12155 & election == "ge13" & parlimen == "P.177 Beaufort" ~ 
-               0, 
-             votes == 11900 & election == "ge13" & parlimen == "P.180 Keningau" ~ 
-               0, 
-             TRUE ~ result), 
-         result_dec = 
-           case_when(
-             votes == 15495 & election == "ge13" & parlimen == "P.170 Tuaran" ~ 
-               "lost", 
-             votes == 12155 & election == "ge13" & parlimen == "P.177 Beaufort" ~ 
-               "lost", 
-             votes == 11900 & election == "ge13" & parlimen == "P.180 Keningau" ~ 
-               "lost", 
-             TRUE ~ result_desc))
 
 gini <- read_csv("./data/hh_inequality_parlimen.csv") |> 
   filter(date == "2024-01-01")
@@ -225,44 +177,7 @@ parlimen_geo <- read_sf("./data/parlimen.geojson") |>
   st_make_valid() |> 
   mutate(area_km2 = st_area(geometry) / 1000000, 
          area_km2 = as.numeric(area_km2))
-```
 
-
-# Racialisation of elections
-
-
-```{r}
-multiracial |> 
-  mutate(count = 1) |> 
-  filter(federal == "Federal") |> 
-  summarise_at(
-    vars(malay_only, chinese_only, indian_only, 
-         sabah_only, sarawak_only, other_only, 
-         multiracial, count), 
-    ~ sum(.x, na.rm = TRUE)
-  ) |> 
-  pivot_longer(!count) |> 
-  mutate(pc = value / count) |> 
-  mutate(name = str_to_title(str_replace_all(name, "_", " "))) |> 
-  ggplot(aes(x = pc, y = fct_reorder(name, pc))) + 
-  geom_col(fill = "#e9d8a6") + 
-  geom_text(aes(label = comma(value)), 
-            hjust = "inward") +
-  scale_x_continuous(labels = percent) + 
-  labs(
-    x = "% of federal elections", 
-    y = "", 
-    title = "Ethnicity of candidates in federal elections"
-  )
-  
-  
-```
-
-As have already seen, most constituencies in Malaysia are multi-ethnic in nature: `r census_fed |> filter(pc_bumi > .8) |> nrow()` out of the `r census_fed |> nrow()` federal constituencies have at least 20% of their populations being racial minorities. 
-
-We'll set the threshold for being included in analysis at 3% of votes 
-
-```{r}
 multiracial_races <- ballots |> 
   mutate(ethnicity = ifelse(ethnicity == "Orang Asli", "Other", ethnicity)) |> 
   mutate(count = 1) |> 
@@ -289,6 +204,23 @@ multiracial_races <- ballots |>
   )) |> 
   distinct(state, seat, date, federal, election, multiracial, combination)
 ```
+
+# Racism in Malaysian politics
+
+According to an [Architects of Diversity survey](https://www.aodmalaysia.org/sods), 64% of Malaysians reporting experiencing some for of discrimination in the past 12 months, with 38% saying the discrimination was related to socioeconomic status, 33% saying it was related to age and 32% saying it was related to ethnicity. 
+
+Hindus were the most likely to have experienced religious-based discrimination (40%), compared to their Christian (26%), Buddhists (22%) and Muslims (20%). 59% of Muslim respondents believe their own religious group faced a lot discrimination, with the figure being 63% amongst Buddhists, 76% amongst Christians and 81% amongst Hindus. 
+
+According to [Pusat KOMAS](https://komas.org/download/Malaysia-Racism-Report_A-Decade-In-Review-2015-2024.pdf), election years tend to see "sharp increases in racial discrimination narratives [...] Political parties have consistently used race and religion as mobilization tools". The add, "politics accounted for just over 43% of all recorded racial discrimination incidents between 2015 and 2024" and that "racial and religious politics remain the primary diver of racial discrimination in Malaysia". 
+
+The next general election is likely to witness another surge in racial politics, particularly with PAS and Bersatu continuing to consolidate their Malay-Muslim voter bases. 
+
+<br><br><br>
+
+# Racialisation of elections
+
+Multiethnic were at their height in the 1950s.
+
 
 ```{r}
 ballots |>
@@ -331,22 +263,110 @@ ballots |>
        title = "Multiethnic electoral races were least common during the 90s and 00s", 
        x = "", 
        y = "") + 
+  theme(strip.background = element_rect(fill = "grey20"), 
+        axis.text.x = element_text(size = 7))
+```
+
+
+Most constituencies in Malaysia are multi-ethnic in nature: `r census_fed |> filter(pc_bumi > .8) |> nrow()` out of the `r census_fed |> nrow()` federal constituencies have at least 20% of their populations being racial minorities. 
+
+Looking at the current federal constituencies (they were last redelineated in 2006) 
+
+We'll set the threshold for being included in analysis at 3% of votes 
+
+
+
+```{r}
+ballots |>
+  filter(date > "2006-01-01") |> 
+  left_join(
+    multiracial_races, 
+    by = c("state", "seat", "date", "federal", "election")
+  ) |> 
+  left_join(
+    census_fed |> 
+      select(parlimen, pc_bumi), 
+    by = c("seat" = "parlimen")
+  ) |> 
+  filter(result %in% c("won", "won_uncontested")) |> 
+  mutate(
+    bumiputera = ifelse(ethnicity %in% c("Malay", "Bumi Sabah", "Bumi Sarawak"),
+                        "Bumiputera winner",
+                        "non-Bumi winner"),
+    east_malaysia = ifelse(str_detect(state, "Sabah|Sarawak|Labuan"), 
+                           "East Malaysia", "Peninsula")) |> 
+  ggplot(aes(x = pc_bumi, fill = east_malaysia)) + 
+  geom_histogram() + 
+  scale_fill_viridis_d(begin = .1, end = .9) +
+  scale_x_continuous(labels = percent) +
+  facet_wrap(~ bumiputera) + 
+  labs(
+    title = "Electoral races by % of the constituency who are Bumiputera", 
+    subtitle = "Shows races since the 2006 redelineation", 
+    fill = "", 
+    y = "Number of electoral races", 
+    x = "% of constituency who are Bumiputera"
+  ) + 
+  theme(strip.background = element_rect(fill = "grey20"))
+
+```
+
+
+```{r}
+ballots |>
+  filter(date > "2006-01-01") |> 
+  left_join(
+    multiracial_races, 
+    by = c("state", "seat", "date", "federal", "election")
+  ) |> 
+  left_join(
+    census_fed |> 
+      select(parlimen, pc_bumi), 
+    by = c("seat" = "parlimen")
+  ) |> 
+  filter(result %in% c("won", "won_uncontested")) |> 
+  mutate(
+    bumiputera = ifelse(ethnicity %in% c("Malay", "Bumi Sabah", "Bumi Sarawak"),
+                        "Bumiputera winner",
+                        "non-Bumi winner"),
+    east_malaysia = ifelse(str_detect(state, "Sabah|Sarawak|Labuan"), 
+                           "East Malaysia", "Peninsula")) |> 
+  ggplot(aes(x = pc_bumi, fill = coalition)) + 
+  geom_histogram() + 
+  scale_fill_manual(values = c(
+    "ALONE" = "grey50", 
+    "BN" = "#1D1147FF", 
+    "GPS" = "#51127CFF", 
+    "GRS" = "#822681FF", 
+    "GS" = "#B63679FF", 
+    "PH" = "#E65164FF", 
+    "PN" = "#FB8861FF", 
+    "PR" = "#FEC287FF", 
+    "USA" = "#FCFDBFFF"
+  )) +
+  scale_x_continuous(labels = percent) +
+  facet_wrap(~ bumiputera) + 
+  labs(
+    title = "Electoral races by % of the constituency who are Bumiputera", 
+    subtitle = "Shows races since the 2006 redelineation", 
+    fill = "Coalition", 
+    y = "Number of electoral races", 
+    x = "% of constituency who are Bumiputera"
+  ) + 
   theme(strip.background = element_rect(fill = "grey20"))
 ```
 
-Multiethnic were at their height in the 1950s. 
+<br> 
 
-```{r}
+Almost all of BN's electoral wins come from constituencies which are more than 75% Bumiputera. This is the same for Perikatan Nasional. Conversely, constituencies which are more than 75% Bumiputera almost never vote for parties under the Pakatan Harapan or Pakatan Rakyat coalitions. 
 
-```
-
-```{r}
-parlimen_geo |> glimpse()
-```
+A significant minority of non-Bumiputera MPs were from BN. Additionally, most of those wins came from constituencies with higher Bumiputera populations, indicating that party loyalty (which itself has racial connotations) were stronger than the ethnicity of individual candidates. 
 
 
+ 
 
-```{r}
+```{r }
+
 parlimen_geo |> 
   left_join(
     multiracial_races |>
@@ -358,130 +378,303 @@ parlimen_geo |>
       distinct(seat, multiracial, combination), 
     by = c("parlimen" = "seat") 
   ) |> 
+  mutate(multiracial = ifelse(multiracial == 1, "Multiethnic", "Single ethnicity")) |> 
   ggplot() + 
   geom_sf(aes(fill = multiracial), 
-          linewidth = .1) + 
+          linewidth = .01, 
+          colour = "grey70") + 
+  scale_fill_viridis_d(option = "magma", 
+                       begin = .2, 
+                       end = .9) + 
   # Only one inset can work at one time
+  # Solution proposed here https://github.com/hughjonesd/ggmagnify/issues/30 
+  # Does not work
   geom_magnify(
     from = c(101.223422,  101.953542, 2.805661, 3.383667), 
     to = c(105, 108, 3.5, 5.9), 
     shadow = FALSE,
     proj = "single"
   ) + 
-  theme_void()
+    #theme_map() + 
+  labs(
+    fill = "",
+    title = "Federal constituencies which have ever had multiethnic electoral races"
+  ) + 
+  theme_void() +
 
+parlimen_geo |> 
+  left_join(
+    census_fed |>
+      select(parlimen, pc_bumi), 
+    by = "parlimen"
+  ) |> 
+  ggplot() + 
+  geom_sf(aes(fill = pc_bumi), 
+          linewidth = .01, 
+          colour = "grey70") + 
+  scale_fill_viridis(option = "magma", 
+                       begin = .2, 
+                       end = .9, 
+                     labels = percent, 
+                     breaks = seq(.1, .9, .1)) + 
+  # Only one inset can work at one time
+  # Solution proposed here https://github.com/hughjonesd/ggmagnify/issues/30 
+  # Does not work
+  geom_magnify(
+    from = c(101.223422,  101.953542, 2.805661, 3.383667), 
+    to = c(105, 108, 3.5, 5.9), 
+    shadow = FALSE,
+    proj = "single"
+  ) + 
+    #theme_map() + 
+  labs(
+    fill = "",
+    title = "Federal constituencies by the proportion of their population who are Bumiputera"
+  ) + 
+  theme_void() +
+  
+  plot_layout(ncol = 1)
+  
 ```
 
+The most racially-homogeneous parties are in East Malaysia. 
 
+Pakatan Harapan and Pakatan Rakyat fielded both more Malay candidates proportionally than Barsian Nasional. 
+
+Where does the perception that these coalitions are anti-Malay come from? 
+
+<br>
+
+```{r}
+ballots |> 
+  filter(date > "2006-01-01") |> 
+  mutate(count = 1) |> 
+  filter(rank <= 3) |>
+  group_by(coalition, ethnicity) |> 
+  summarise(count = sum(count), .groups = "drop") |> 
+  group_by(coalition) |> 
+  mutate(total_candidates = sum(count)) |> 
+  ungroup() |> 
+  mutate(pc = count / total_candidates) |> 
+  ggplot(aes(x = pc, y = fct_rev(coalition))) + 
+  geom_col(aes(fill = ethnicity)) + 
+  geom_vline(xintercept = .25, linetype = "longdash", colour = "white", alpha = .4) +
+  geom_vline(xintercept = .5, linetype = "longdash", colour = "white", alpha = .4) +
+  geom_vline(xintercept = .75, linetype = "longdash", colour = "white", alpha = .4) +
+  scale_fill_viridis_d() + 
+  scale_x_continuous(label = percent) + 
+  labs(x = "% of candidates", 
+       y = "Coalition", 
+       title = "Candidates fielded by ethnicity", 
+       subtitle = "Only showing politicians who ran since the redelineation in 2006", 
+       fill = "Ethnicity")
+  
+  
+```
+
+<br>
 
 
 
 ```{r}
 ballots |> 
-  mutate(ethnicity = ifelse(ethnicity == "Orang Asli", "Other", ethnicity)) |> 
+  filter(date > "2006-01-01") |> 
   mutate(count = 1) |> 
-  # I think this filter is fine
   filter(rank <= 3) |> 
-  group_by(state, seat, date, federal, election) |> 
-  summarise(malay_candidates = sum(count[ethnicity == "Malay"]), 
-            chinese_candidates = sum(count[ethnicity == "Chinese"]), 
-            indian_candidates = sum(count[ethnicity == "Indian"]), 
-            sabah_candidates = sum(count[ethnicity == "Bumi Sabah"]), 
-            sarawak_candidates = sum(count[ethnicity == "Bumi Sarawak"]), 
-            other_candidates = sum(count[ethnicity == "Other"]), 
-            .groups = "drop") |> 
-  mutate(total_candidates = malay_candidates + chinese_candidates + indian_candidates + 
-           sabah_candidates + sarawak_candidates + other_candidates) |> 
-  pivot_longer(cols = malay_candidates:other_candidates, 
-               names_to = "candidate_ethnicity", 
-               values_to = "value") |> 
-  mutate(candidate_ethnicity = str_remove_all(candidate_ethnicity, "_candidates")) |> 
-  filter(value != 0) |>
-  mutate(multiracial = ifelse(value != total_candidates, 1, 0)) |> 
-  mutate(combination = ifelse(
-    multiracial == 0, paste0(candidate_ethnicity, "_only"), "multiethnic"
-  ))
+  mutate(party = fct_lump(party, n = 12)) |> 
+  group_by(party, ethnicity) |> 
+  summarise(count = sum(count), .groups = "drop") |> 
+  group_by(party) |> 
+  mutate(total_candidates = sum(count)) |> 
+  ungroup() |> 
+  mutate(pc = count / total_candidates) |> 
+  ggplot(aes(x = pc, y = fct_rev(party))) + 
+  geom_col(aes(fill = ethnicity)) + 
+  geom_vline(xintercept = .25, linetype = "longdash", colour = "white", alpha = .4) +
+  geom_vline(xintercept = .5, linetype = "longdash", colour = "white", alpha = .4) +
+  geom_vline(xintercept = .75, linetype = "longdash", colour = "white", alpha = .4) +
+  scale_fill_viridis_d() + 
+  scale_x_continuous(label = percent) + 
+  labs(x = "% of candidates", 
+       y = "Party", 
+       title = "The only true multi-ethnic parties are BEBAS and PKR", 
+       subtitle = "Only showing politicians who ran since the redelineation in 2006", 
+       fill = "Ethnicity")
+```
+
+<br>
+
+No party reflects the racial make-up of the country. Amanah, Bersatu, PAS and UMNO are Malay parties, DAP, Gerakan and the MCA are Chinese parties. The MIC is an Indian party, PBB is a Sabahan party and WARISAN is a Sarawakian party. 
+
+PKR upholds its commitment to multiracialism, at least in the candidates that it has fielded. Additionally, the demographics of the seats it governs [largely mirrors](https://www.iseas.edu.sg/articles-commentaries/iseas-perspective/2024-21-a-deep-dive-into-malaysias-peoples-justice-party-pkr-by-james-chai/) the demographics of peninsula Malaysia. 
+
+
+
+```{r}
+ballots |> 
+  filter(date > "2006-01-01") |> 
+  mutate(count = 1) |> 
+  filter(rank <= 3) |> 
+  mutate(party = fct_lump(party, n = 12)) |> 
+  group_by(party, sex) |> 
+  summarise(count = sum(count), .groups = "drop") |> 
+  group_by(party) |> 
+  mutate(total_candidates = sum(count)) |> 
+  ungroup() |> 
+  mutate(pc = count / total_candidates, 
+         sex = ifelse(sex == "F", "Female", "Male")) |> 
+  ggplot(aes(x = pc, y = fct_rev(party))) + 
+  geom_col(aes(fill = sex)) + 
+  geom_vline(xintercept = .25, linetype = "longdash", colour = "white", alpha = .4) +
+  geom_vline(xintercept = .5, linetype = "longdash", colour = "white", alpha = .4) +
+  geom_vline(xintercept = .75, linetype = "longdash", colour = "white", alpha = .4) +
+  scale_fill_viridis_d() + 
+  scale_x_continuous(label = percent) + 
+  labs(x = "% of candidates", 
+       y = "Party", 
+       title = "Only 10.5% of candidates since 2006 have been women", 
+       subtitle = "Only showing politicians who ran since the redelineation in 2006", 
+       fill = "Sex")
+```
+
+PKR has backtracked on its commitment to one-person-one-vote in its [internal elections](https://www.iseas.edu.sg/articles-commentaries/iseas-perspective/2024-21-a-deep-dive-into-malaysias-peoples-justice-party-pkr-by-james-chai/): executive committees at the national and division levels are now chosen by delegates. 
+
+Efforts have been made in recent years to ease this burden. First, PKR adopted a hybrid selection system for the first time in 2022,[69] where the executive committees at the national and division levels are chosen by delegates (see Table 6 above). This halves the maximum votes available to the members, which had proven to be too many for members in the first place (‘over-democracy’).[70] Two, introducing online voting (via the ‘ADIL’ application) that will minimise logistics and potential cheating. In 2022, more
+
+
+
+
+
+[James Chin](https://www.commonwealthroundtable.co.uk/commonwealth/eurasia/malaysia/research-article-anwars-long-walk-to-power-the-2022-malaysian-general-elections/) at the Commonwealth Roundtable argues that there is no middle ground left in Malaysian politics. 
+
+```{r}
+ballots |> 
+  filter(date > "2006-01-01") |> 
+  mutate(count = 1) |> 
+  filter(result %in% c("won", "won_uncontested")) |> 
+  count(party, sort = TRUE)
 ```
 
 
 ```{r}
-multiracial <- ballots |> 
-  mutate(ethnicity = ifelse(ethnicity == "Orang Asli", "Other", ethnicity)) |> 
+ballots |> 
   mutate(count = 1) |> 
-  # I think this filter is fine
-  filter(rank <= 3) |> 
-  group_by(state, seat, date, federal, election) |> 
-  summarise(malay_candidates = sum(count[ethnicity == "Malay"]), 
-            chinese_candidates = sum(count[ethnicity == "Chinese"]), 
-            indian_candidates = sum(count[ethnicity == "Indian"]), 
-            sabah_candidates = sum(count[ethnicity == "Bumi Sabah"]), 
-            sarawak_candidates = sum(count[ethnicity == "Bumi Sarawak"]), 
-            other_candidates = sum(count[ethnicity == "Other"]), 
+  filter(result %in% c("won", "won_uncontested")) |> 
+  filter(str_detect(election, "GE")) |> 
+  mutate(year = year(date)) |> 
+  group_by(election) |> 
+  mutate(year = min(year)) |> 
+  ungroup() |> 
+  mutate(party = fct_lump(party, n = 12, w = votes)) |> 
+  group_by(year, party) |> 
+  summarise(mps = sum(count), 
             .groups = "drop") |> 
-  mutate(malay_chinese = ifelse(malay_candidates > 0 & chinese_candidates > 0, 1, 0), 
-         malay_indian = ifelse(malay_candidates > 0 & indian_candidates > 0, 1, 0), 
-         chinese_indian = ifelse(chinese_candidates > 0 & indian_candidates > 0, 1, 0), 
-         malay_sabah = ifelse(malay_candidates > 0 & sabah_candidates > 0, 1, 0), 
-         malay_sarawak = ifelse(malay_candidates > 0 & sarawak_candidates > 0, 1, 0), 
-         chinese_sabah = ifelse(chinese_candidates > 0 & sabah_candidates > 0, 1, 0), 
-         chinese_sarawak = ifelse(chinese_candidates > 0  & sarawak_candidates > 0, 1, 0), 
-         indian_sabah = ifelse(indian_candidates > 0 & sabah_candidates > 0, 1, 0), 
-         indian_sarawak = ifelse(indian_candidates > 0 & sarawak_candidates > 0, 1, 0), 
-         malay_other = ifelse(malay_candidates > 0 & other_candidates > 0, 1, 0), 
-         chinese_other = ifelse(chinese_candidates > 0 & other_candidates > 0, 1, 0), 
-         indian_other = ifelse(indian_candidates > 0 & other_candidates > 0, 1, 0), 
-         sabah_other = ifelse(sabah_candidates > 0 & other_candidates > 0, 1, 0), 
-         sarawak_other = ifelse(sarawak_candidates > 0 & other_candidates > 0, 1, 0), 
-         
-         malay_chinese_indian = ifelse(malay_candidates > 0 & chinese_candidates > 0 & 
-                                         indian_candidates > 0, 1, 0), 
-         malay_chinese_other = ifelse(malay_candidates > 0 & chinese_candidates > 0 & 
-                                        other_candidates > 0, 1, 0), 
-         malay_chinese_sabah = ifelse(malay_candidates > 0 & chinese_candidates > 0 & 
-                                        sabah_candidates > 0, 1, 0), 
-         malay_chinese_sarawak = ifelse(malay_candidates > 0 & chinese_candidates > 0 & 
-                                          sarawak_candidates > 0, 1, 0), 
-         chinese_sabah_sarawak = ifelse(chinese_candidates > 0 & sabah_candidates > 0 & 
-                                          sarawak_candidates > 0, 1, 0), 
-         sabah_sarawak_other = ifelse(sabah_candidates > 0 & sarawak_candidates > 0 & 
-                                        other_candidates > 0, 1, 0),
-         
-         malay_only = ifelse(malay_candidates > 0 & chinese_candidates == 0 & 
-                               indian_candidates == 0 & sabah_candidates == 0 & 
-                               sarawak_candidates == 0 & other_candidates == 0, 
-                             1, 0), 
-         chinese_only = ifelse(malay_candidates == 0 & chinese_candidates > 0 & 
-                               indian_candidates == 0 & sabah_candidates == 0 & 
-                               sarawak_candidates == 0 & other_candidates == 0, 
-                             1, 0),
-         indian_only = ifelse(malay_candidates == 0 & chinese_candidates == 0 & 
-                               indian_candidates > 0 & sabah_candidates == 0 & 
-                               sarawak_candidates == 0 & other_candidates == 0, 
-                             1, 0),
-         sabah_only = ifelse(malay_candidates == 0 & chinese_candidates == 0 & 
-                               indian_candidates == 0 & sabah_candidates > 0 & 
-                               sarawak_candidates == 0 & other_candidates == 0, 
-                             1, 0),
-         sarawak_only = ifelse(malay_candidates == 0 & chinese_candidates == 0 & 
-                               indian_candidates == 0 & sabah_candidates == 0 & 
-                               sarawak_candidates > 0 & other_candidates == 0, 
-                             1, 0),
-         other_only = ifelse(malay_candidates == 0 & chinese_candidates == 0 & 
-                               indian_candidates == 0 & sabah_candidates == 0 & 
-                               sarawak_candidates == 0 & other_candidates > 0, 
-                             1, 0)
-         ) |> 
-  select(state, seat, date, federal, election, malay_chinese:other_only) |> 
-  mutate(multiracial = ifelse(malay_only == 1 | chinese_only == 1 | indian_only == 1 |
-                                sabah_only == 1 | sarawak_only == 1 | other_only == 1,
-                              0, 1))  
+  ggplot(aes(x = year, y = mps, group = party)) + 
+  geom_line(aes(colour = party), 
+            linewidth = 1.05, 
+            alpha = .8) + 
+  # scale_colour_manual(
+  #   values = c(
+  #     "UMNO" = "#30123BFF",
+  #     "MCA" = "#4454C4FF",
+  #     "MIC" = "#4490FEFF",
+  #     "BERSATU" = "#1FC8DEFF",
+  #     "PAS" = "#29EFA2FF",
+  #     "GERAKAN" = "#7DFF56FF",
+  #     "PBB" = "#C1F334FF",
+  #     "PBS" = "#F1CA3AFF",
+  #     "USNO" = "#FE922AFF",
+  #     "SUPP" = "#EA4F0DFF",
+  #     "PKR" = "#BE2102FF",
+  #     "DAP" = "#7A0403FF",
+  #     "Other" = "grey50"
+  #     
+  #   )
+  # ) +
+  scale_colour_viridis_d(option = "turbo") +
+  scale_x_continuous(breaks = seq(1955, 2026, 5)) +
+  scale_y_continuous(breaks = seq(0, 120, 10)) +
+  guides(colour = guide_legend(override.aes = list(linewidth = 2, 
+                                                   alpha = 1))) + 
+  labs(x = "", 
+       y = "Number of MPs", 
+       title = "The collapse of UMNO has left PAS and DAP as the largest parties", 
+       colour = "") + 
+  theme(axis.text.x = element_text(size = 7))
+```
+
+
+```{r}
+ballots |>  
+  filter(str_detect(election, "GE")) |>
+  mutate(year = year(date)) |> 
+  group_by(election) |> 
+  mutate(year = min(year)) |>
+  ungroup() |> 
+  mutate(party = fct_lump(party, n = 12, w = votes)) |>
+  group_by(year, party) |> 
+  summarise(votes = sum(votes), .groups = "drop") |>
+  group_by(year) |> 
+  mutate(total_votes = sum(votes)) |> 
+  ungroup() |> 
+  mutate(votes_pc = votes / total_votes) |> 
+  ggplot(aes(x = year, y = votes_pc, group = party)) + 
+  geom_line(aes(colour = party), 
+            linewidth = 1.05, 
+            alpha = .8) + 
+  scale_colour_viridis_d(option = "turbo") +
+  scale_x_continuous(breaks = seq(1955, 2026, 5)) +
+  guides(colour = guide_legend(override.aes = list(linewidth = 2, 
+                                                   alpha = 1))) + 
+  scale_y_continuous(labels = percent, breaks = seq(0, .6, .1)) +
+  labs(x = "", 
+       y = "Share of popular vote", 
+       title = "The collapse of UMNO has left PAS and DAP as the largest parties", 
+       colour = "") + 
+  theme(axis.text.x = element_text(size = 7))
   
+  
+```
 
 
+<br> 
+
+The disappearance of the Malaysian Indian Congress and the Malaysian Chinese Association from federal parliament 
+
+Recalling our earlier criticism of Anwar, is his bid with GRS meant to engineer a more permanent parliamentary majority without needing to win the popular vote? 
+
+UMNO is still, just barely, the largest party by share of votes. 
+A proportional voting system would see 
+
+Redistricting would actually favour Malays. 
+
+The MCA still commands around 5% of the total vote
+
+The collapse of UMNO is clear, but also its dominance was perhaps, always overstated. Even at its peak (outside of the first general election in 1955), it has never commanded more than 40% of the national vote share. 
+
+UMNO and PKR are penalised by the first-past-the-post system, whereas PAS, DAP and Bersatu are each rewarded by it. 
+
+DAP's increases have been at the expense of the MCA. Following the 
+
+Ethnic, but now religious cleavage. 
+
+Fracture within Bersatu
+
+
+
+
+```{r}
+viridis_pal(option = "turbo")(12)
+```
+
+```{r}
 
 ```
 
 
+```{r}
+show_col(viridis_pal(option = "turbo")(12))
+```
 
 
 ```{r}
