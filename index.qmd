@@ -594,7 +594,7 @@ census_fed |>
   theme(legend.position = "none") +
   scale_x_continuous(labels = percent, 
                      breaks = seq(0, .8, .1)) + 
-  labs(title = "Share of votin power (legislative representation)", 
+  labs(title = "Share of voting power (legislative representation)", 
        x = "", y = "") +
   facet_wrap(~ fct_rev(east_malaysia), ncol = 1) +
   theme(strip.background = element_rect(fill = "grey20")) +
