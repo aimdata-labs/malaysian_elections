@@ -1055,7 +1055,7 @@ census_dun |>
   theme(axis.text.y = element_text(size = .5), 
         strip.background = element_rect(fill = "grey20")) + 
   labs(title = "Malapportionment is a problem at the state level as well",
-       subtitle = "State labels include how much larger the average constituency is from the smallest constituency\nResults from most recent election", 
+       subtitle = "State labels include how much larger the average constituency is than the smallest constituency\nResults from most recent election", 
        x = "Population", 
        y = "", 
        fill = "Coalition")
@@ -1067,7 +1067,6 @@ census_dun |>
 
 [ISEAS's analysis](https://www.iseas.edu.sg/wp-content/uploads/2024/03/ISEAS_Perspective_2024_30.pdf) holds true at the state level as well, with BN benefiting substantially from malapportionment and having an outsized number MPs compared to the populations of the constituencies it has won. BN is an almost entirely rural coalition, only winning urban seats in its stronghold of Johor. Conversely, Pakatan Harapan is a largely urban coalition. 
 
-That such severe malapportionment persists even in states under Pakatan Harapan control (which should be the coalition most disposed towards redelineation) speaks towards the priorities of the current government and a disregard for the fair representation of its constituents. 
 
 
 <br><br><br>
