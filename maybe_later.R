@@ -278,3 +278,6 @@ ballots |>
   mutate(combination = ifelse(
     multiracial == 0, paste0(candidate_ethnicity, "_only"), "multiethnic"
   ))
+
+
+PKR upholds its commitment to multiracialism, at least in the candidates that it has fielded. Additionally, the demographics of the seats it governs [largely mirrors](https://www.iseas.edu.sg/articles-commentaries/iseas-perspective/2024-21-a-deep-dive-into-malaysias-peoples-justice-party-pkr-by-james-chai/) the demographics of peninsula Malaysia.

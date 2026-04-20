@@ -219,152 +219,6 @@ The next general election is likely to witness another surge in racial politics,
 
 # Racialisation of elections
 
-Multiethnic were at their height in the 1950s.
-
-
-```{r}
-ballots |>
-  left_join(
-    multiracial_races, 
-    by = c("state", "seat", "date", "federal", "election")
-  ) |> 
-  mutate(year = year(date), 
-         decade = year - year %% 10, 
-         count = 1) |>
-  filter(result %in% c("won", "won_uncontested")) |> 
-  group_by(
-    decade, federal, combination
-  ) |> 
-  summarise(count = sum(count), .groups = "drop") |> 
-  group_by(decade, federal) |> 
-  mutate(total = sum(count), 
-         combination = case_when(
-           combination == "sabah_only" ~ "bumi_sabah_only", 
-           combination == "sarawak_only" ~ "bumi_sarawak_only", 
-           TRUE ~ combination), 
-         combination = str_to_title(str_replace_all(combination, "_", " "))
-         ) |> 
-  ungroup() |>
-  mutate(pc = count / total) |> 
-  ggplot(aes(x = decade, y = pc, fill = fct_relevel(combination, 
-                                   c("Bumi Sabah Only", 
-                                     "Bumi Sarawak Only", 
-                                     "Chinese Only", 
-                                     "Indian Only", 
-                                     "Malay Only", 
-                                     "Other Only", 
-                                     "Multiethnic")))) + 
-  geom_col() + 
-  facet_wrap(~ federal) + 
-  scale_y_continuous(labels = percent) + 
-  scale_fill_viridis_d() + 
-  scale_x_continuous(breaks = seq(1950, 2020, 10)) +
-  labs(fill = "Combination",
-       title = "Multiethnic electoral races were least common during the 90s and 00s", 
-       x = "", 
-       y = "") + 
-  theme(strip.background = element_rect(fill = "grey20"), 
-        axis.text.x = element_text(size = 7))
-```
-
-
-Most constituencies in Malaysia are multi-ethnic in nature: `r census_fed |> filter(pc_bumi > .8) |> nrow()` out of the `r census_fed |> nrow()` federal constituencies have at least 20% of their populations being racial minorities. 
-
-Looking at the current federal constituencies (they were last redelineated in 2006) 
-
-We'll set the threshold for being included in analysis at 3% of votes 
-
-
-
-```{r}
-ballots |>
-  filter(date > "2006-01-01") |> 
-  left_join(
-    multiracial_races, 
-    by = c("state", "seat", "date", "federal", "election")
-  ) |> 
-  left_join(
-    census_fed |> 
-      select(parlimen, pc_bumi), 
-    by = c("seat" = "parlimen")
-  ) |> 
-  filter(result %in% c("won", "won_uncontested")) |> 
-  mutate(
-    bumiputera = ifelse(ethnicity %in% c("Malay", "Bumi Sabah", "Bumi Sarawak"),
-                        "Bumiputera winner",
-                        "non-Bumi winner"),
-    east_malaysia = ifelse(str_detect(state, "Sabah|Sarawak|Labuan"), 
-                           "East Malaysia", "Peninsula")) |> 
-  ggplot(aes(x = pc_bumi, fill = east_malaysia)) + 
-  geom_histogram() + 
-  scale_fill_viridis_d(begin = .1, end = .9) +
-  scale_x_continuous(labels = percent) +
-  facet_wrap(~ bumiputera) + 
-  labs(
-    title = "Electoral races by % of the constituency who are Bumiputera", 
-    subtitle = "Shows races since the 2006 redelineation", 
-    fill = "", 
-    y = "Number of electoral races", 
-    x = "% of constituency who are Bumiputera"
-  ) + 
-  theme(strip.background = element_rect(fill = "grey20"))
-
-```
-
-
-```{r}
-ballots |>
-  filter(date > "2006-01-01") |> 
-  left_join(
-    multiracial_races, 
-    by = c("state", "seat", "date", "federal", "election")
-  ) |> 
-  left_join(
-    census_fed |> 
-      select(parlimen, pc_bumi), 
-    by = c("seat" = "parlimen")
-  ) |> 
-  filter(result %in% c("won", "won_uncontested")) |> 
-  mutate(
-    bumiputera = ifelse(ethnicity %in% c("Malay", "Bumi Sabah", "Bumi Sarawak"),
-                        "Bumiputera winner",
-                        "non-Bumi winner"),
-    east_malaysia = ifelse(str_detect(state, "Sabah|Sarawak|Labuan"), 
-                           "East Malaysia", "Peninsula")) |> 
-  ggplot(aes(x = pc_bumi, fill = coalition)) + 
-  geom_histogram() + 
-  scale_fill_manual(values = c(
-    "ALONE" = "grey50", 
-    "BN" = "#1D1147FF", 
-    "GPS" = "#51127CFF", 
-    "GRS" = "#822681FF", 
-    "GS" = "#B63679FF", 
-    "PH" = "#E65164FF", 
-    "PN" = "#FB8861FF", 
-    "PR" = "#FEC287FF", 
-    "USA" = "#FCFDBFFF"
-  )) +
-  scale_x_continuous(labels = percent) +
-  facet_wrap(~ bumiputera) + 
-  labs(
-    title = "Electoral races by % of the constituency who are Bumiputera", 
-    subtitle = "Shows races since the 2006 redelineation", 
-    fill = "Coalition", 
-    y = "Number of electoral races", 
-    x = "% of constituency who are Bumiputera"
-  ) + 
-  theme(strip.background = element_rect(fill = "grey20"))
-```
-
-<br> 
-
-Almost all of BN's electoral wins come from constituencies which are more than 75% Bumiputera. This is the same for Perikatan Nasional. Conversely, constituencies which are more than 75% Bumiputera almost never vote for parties under the Pakatan Harapan or Pakatan Rakyat coalitions. 
-
-A significant minority of non-Bumiputera MPs were from BN. Additionally, most of those wins came from constituencies with higher Bumiputera populations, indicating that party loyalty (which itself has racial connotations) were stronger than the ethnicity of individual candidates. 
-
-
- 
-
 ```{r }
 
 parlimen_geo |> 
@@ -437,11 +291,227 @@ parlimen_geo |>
   
 ```
 
+<br>
+
+43% (97 out of 222 constituencies) have ever had multiethnic electoral races. These constituencies align largely with the areas with the highest concentrations of non-Bumiputeras. 
+
+
+
+
+<br>
+
+```{r}
+ballots |>
+  left_join(
+    multiracial_races, 
+    by = c("state", "seat", "date", "federal", "election")
+  ) |> 
+  mutate(year = year(date), 
+         decade = year - year %% 10, 
+         count = 1) |>
+  # This is just to isolate the number of electoral races
+  filter(result %in% c("won", "won_uncontested")) |> 
+  group_by(
+    decade, federal, combination
+  ) |> 
+  summarise(count = sum(count), .groups = "drop") |> 
+  group_by(decade, federal) |> 
+  mutate(total = sum(count), 
+         combination = case_when(
+           combination == "sabah_only" ~ "bumi_sabah_only", 
+           combination == "sarawak_only" ~ "bumi_sarawak_only", 
+           TRUE ~ combination), 
+         combination = str_to_title(str_replace_all(combination, "_", " "))
+         ) |> 
+  ungroup() |>
+  mutate(pc = count / total) |> 
+  ggplot(aes(x = decade, y = pc, fill = fct_relevel(combination, 
+                                   c("Bumi Sabah Only", 
+                                     "Bumi Sarawak Only", 
+                                     "Chinese Only", 
+                                     "Indian Only", 
+                                     "Malay Only", 
+                                     "Other Only", 
+                                     "Multiethnic")))) + 
+  geom_col() + 
+  facet_wrap(~ federal) + 
+  scale_y_continuous(labels = percent) +
+  scale_fill_manual(
+    values = c(
+      "Bumi Sabah Only" = "#440154FF", 
+      "Bumi Sarawak Only" = "#414487FF",
+      "Chinese Only" = "#2A788EFF",
+      "Indian Only" = "#22A884FF",
+      "Malay Only" = "#7AD151FF",
+      "Other Only" = "#FDE725FF",
+      "Multiethnic" = "#FCFDBFFF"
+    )
+  ) +
+  scale_x_continuous(breaks = seq(1950, 2020, 10)) +
+  labs(fill = "Combination",
+       title = "Multiethnic electoral races were least common during the 90s and 00s", 
+       x = "", 
+       y = "") + 
+  theme(strip.background = element_rect(fill = "grey20"), 
+        axis.text.x = element_text(size = 7))
+```
+<br>
+
+Most constituencies in Malaysia are multi-ethnic in nature: `r census_fed |> filter(pc_bumi > .75) |> nrow()` out of the `r census_fed |> nrow()` federal constituencies have at least 25% of their populations being racial minorities. The latest redelineation was done in 2006 and the plots in this section will focus on the years since then. 
+
+Commonsensically, given the racialised nature of Malaysian politics, Bumiputera candidates are far more likely to win in areas that have high proportions of Bumiputera candidates. Non-bumiputera candidates almost never win seats in constituencies with more than 75% Bumiputera residents. 
+
+<br> 
+
+```{r}
+ballots |>
+  left_join(
+    multiracial_races, 
+    by = c("state", "seat", "date", "federal", "election")
+  ) |> 
+  mutate(year = year(date), 
+         decade = year - year %% 10, 
+         count = 1, 
+         ethnicity = ifelse(ethnicity == "Orang Asli", "Other", ethnicity)) |>
+  filter(result %in% c("won", "won_uncontested") & combination == "multiethnic") |> 
+  group_by(
+    decade, federal, combination, ethnicity
+  ) |> 
+  summarise(count = sum(count), .groups = "drop") |> 
+  group_by(decade, federal) |> 
+  mutate(total = sum(count)) |> 
+  ungroup() |>
+  mutate(pc = count / total) |> 
+  ggplot(aes(x = decade, y = pc, fill = fct_relevel(ethnicity, 
+                                   c("Bumi Sabah", 
+                                     "Bumi Sarawak", 
+                                     "Chinese", 
+                                     "Indian", 
+                                     "Malay", 
+                                     "Other")))) + 
+  geom_col() + 
+  facet_wrap(~ federal) + 
+  scale_y_continuous(labels = percent) +
+  scale_fill_manual(
+    values = c(
+      "Bumi Sabah" = "#440154FF", 
+      "Bumi Sarawak" = "#414487FF",
+      "Chinese" = "#2A788EFF",
+      "Indian" = "#22A884FF",
+      "Malay" = "#7AD151FF",
+      "Other" = "#FDE725FF")
+  ) +
+  scale_x_continuous(breaks = seq(1950, 2020, 10)) +
+  labs(fill = "Combination",
+       title = "Multiethnic electoral races were most commonly won by Chinese candidates",
+       subtitle = "Though this has been on the downtrend since the 00s",
+       x = "", 
+       y = "") + 
+  theme(strip.background = element_rect(fill = "grey20"), 
+        axis.text.x = element_text(size = 7))
+```
+
+
+
+```{r}
+ballots |>
+  filter(date > "2006-01-01") |> 
+  left_join(
+    multiracial_races, 
+    by = c("state", "seat", "date", "federal", "election")
+  ) |> 
+  left_join(
+    census_fed |> 
+      select(parlimen, pc_bumi), 
+    by = c("seat" = "parlimen")
+  ) |> 
+  filter(result %in% c("won", "won_uncontested")) |> 
+  mutate(
+    bumiputera = ifelse(ethnicity %in% c("Malay", "Bumi Sabah", "Bumi Sarawak"),
+                        "Bumiputera winner",
+                        "non-Bumi winner"),
+    east_malaysia = ifelse(str_detect(state, "Sabah|Sarawak|Labuan"), 
+                           "East Malaysia", "Peninsula")) |> 
+  ggplot(aes(x = pc_bumi, fill = east_malaysia)) + 
+  geom_histogram() + 
+  scale_fill_viridis_d(begin = .1, end = .9) +
+  scale_x_continuous(labels = percent) +
+  facet_wrap(~ bumiputera) + 
+  labs(
+    title = "Electoral races by % of the constituency who are Bumiputera", 
+    subtitle = "Shows races since the 2006 redelineation", 
+    fill = "", 
+    y = "Number of electoral races", 
+    x = "% of constituency who are Bumiputera"
+  ) + 
+  theme(strip.background = element_rect(fill = "grey20"))
+
+```
+<br>
+
+
+
+We'll set the threshold for being included in analysis at 3% of votes 
+
+
+
+```{r}
+ballots |>
+  filter(date > "2006-01-01") |> 
+  left_join(
+    multiracial_races, 
+    by = c("state", "seat", "date", "federal", "election")
+  ) |> 
+  left_join(
+    census_fed |> 
+      select(parlimen, pc_bumi), 
+    by = c("seat" = "parlimen")
+  ) |> 
+  filter(result %in% c("won", "won_uncontested")) |> 
+  mutate(
+    bumiputera = ifelse(ethnicity %in% c("Malay", "Bumi Sabah", "Bumi Sarawak"),
+                        "Bumiputera winner",
+                        "non-Bumi winner"),
+    east_malaysia = ifelse(str_detect(state, "Sabah|Sarawak|Labuan"), 
+                           "East Malaysia", "Peninsula")) |> 
+  ggplot(aes(x = pc_bumi, fill = coalition)) + 
+  geom_histogram() + 
+  scale_fill_manual(values = c(
+    "ALONE" = "grey50", 
+    "BN" = "#1D1147FF", 
+    "GPS" = "#51127CFF", 
+    "GRS" = "#822681FF", 
+    "GS" = "#B63679FF", 
+    "PH" = "#E65164FF", 
+    "PN" = "#FB8861FF", 
+    "PR" = "#FEC287FF", 
+    "USA" = "#FCFDBFFF"
+  )) +
+  scale_x_continuous(labels = percent) +
+  facet_wrap(~ bumiputera) + 
+  labs(
+    title = "Electoral races by % of the constituency who are Bumiputera", 
+    subtitle = "Shows races since the 2006 redelineation", 
+    fill = "Coalition", 
+    y = "Number of electoral races", 
+    x = "% of constituency who are Bumiputera"
+  ) + 
+  theme(strip.background = element_rect(fill = "grey20"))
+```
+
+<br> 
+
+Almost all of BN's electoral wins come from constituencies which are more than 75% Bumiputera. This is the same for Perikatan Nasional. Conversely, constituencies which are more than 75% Bumiputera almost never vote for parties under the Pakatan Harapan (or its predecessor Pakatan Rakyat) coalition. 
+
+A significant minority of non-Bumiputera MPs were from BN. Additionally, most of those wins came from constituencies with higher Bumiputera populations, indicating that party loyalty (which itself has racial connotations) were stronger than the ethnicity of individual candidates. 
+
+<br>
+ 
+
+
 The most racially-homogeneous parties are in East Malaysia. 
 
-Pakatan Harapan and Pakatan Rakyat fielded both more Malay candidates proportionally than Barsian Nasional. 
-
-Where does the perception that these coalitions are anti-Malay come from? 
+Pakatan Harapan and Pakatan Rakyat fielded both more Malay candidates proportionally than Barsian Nasional. Of the major coalitions, Perikatan Nasional had the lowest proportion of minority candidates. 
 
 <br>
 
@@ -474,13 +544,18 @@ ballots |>
 
 <br>
 
+Whilst many coalitions might be multiethnic in nature, [Mustafa, Kartini and Nazri](https://www.frontiersin.org/journals/political-science/articles/10.3389/fpos.2026.1721966/full) argue that, at least under the period of BN dominance, coalitions were not consociational, but were "sustained more by UMNO’s control and patronage than by genuine power-sharing". 
+
+When we look at party level, we note that BEBAS and PKR are the only true multiracial parties, with all other parties being dominated by a main ethnic group. 
+
+<br> 
 
 
-```{r}
+```{r ethnicity-party-candidates}
 ballots |> 
   filter(date > "2006-01-01") |> 
-  mutate(count = 1) |> 
-  filter(rank <= 3) |> 
+  mutate(count = 1) |>
+  mutate(ethnicity = ifelse(ethnicity == "Orang Asli", "Other", ethnicity)) |> 
   mutate(party = fct_lump(party, n = 12)) |> 
   group_by(party, ethnicity) |> 
   summarise(count = sum(count), .groups = "drop") |> 
@@ -488,7 +563,11 @@ ballots |>
   mutate(total_candidates = sum(count)) |> 
   ungroup() |> 
   mutate(pc = count / total_candidates) |> 
-  ggplot(aes(x = pc, y = fct_rev(party))) + 
+  ggplot(aes(x = pc, y = fct_rev(fct_relevel(party, 
+                                             c("Other", "UMNO", "PAS", "PKR", 
+                                               "BEBAS", "DAP", "MCA", "BERSATU", 
+                                               "AMANAH", "WARISAN", "PBB","GERAKAN", "STAR"
+                                             ))))) + 
   geom_col(aes(fill = ethnicity)) + 
   geom_vline(xintercept = .25, linetype = "longdash", colour = "white", alpha = .4) +
   geom_vline(xintercept = .5, linetype = "longdash", colour = "white", alpha = .4) +
@@ -496,67 +575,113 @@ ballots |>
   scale_fill_viridis_d() + 
   scale_x_continuous(label = percent) + 
   labs(x = "% of candidates", 
-       y = "Party", 
        title = "The only true multi-ethnic parties are BEBAS and PKR", 
-       subtitle = "Only showing politicians who ran since the redelineation in 2006", 
-       fill = "Ethnicity")
+       subtitle = "Only candidates since 2006; parties ordered by number of candidates", 
+       fill = "Candidate\nethnicity")
+  
+  
 ```
 
 <br>
 
 No party reflects the racial make-up of the country. Amanah, Bersatu, PAS and UMNO are Malay parties, DAP, Gerakan and the MCA are Chinese parties. The MIC is an Indian party, PBB is a Sabahan party and WARISAN is a Sarawakian party. 
 
-PKR upholds its commitment to multiracialism, at least in the candidates that it has fielded. Additionally, the demographics of the seats it governs [largely mirrors](https://www.iseas.edu.sg/articles-commentaries/iseas-perspective/2024-21-a-deep-dive-into-malaysias-peoples-justice-party-pkr-by-james-chai/) the demographics of peninsula Malaysia. 
+These patterns hold when we examine the candidates who actually won. The plot below shows the breakdown of MPs by party since 2006. 
 
 
+<br>
 
 ```{r}
 ballots |> 
   filter(date > "2006-01-01") |> 
-  mutate(count = 1) |> 
-  filter(rank <= 3) |> 
+  filter(result %in% c("won", "won_uncontested")) |> 
+  mutate(count = 1) |>
+  mutate(ethnicity = ifelse(ethnicity == "Orang Asli", "Other", ethnicity)) |> 
   mutate(party = fct_lump(party, n = 12)) |> 
-  group_by(party, sex) |> 
+  group_by(party, ethnicity) |> 
   summarise(count = sum(count), .groups = "drop") |> 
   group_by(party) |> 
   mutate(total_candidates = sum(count)) |> 
   ungroup() |> 
-  mutate(pc = count / total_candidates, 
-         sex = ifelse(sex == "F", "Female", "Male")) |> 
-  ggplot(aes(x = pc, y = fct_rev(party))) + 
-  geom_col(aes(fill = sex)) + 
+  mutate(pc = count / total_candidates) |> 
+  ggplot(aes(x = pc, y = fct_rev(fct_relevel(party, 
+                                     c("UMNO", "DAP", "PAS", "PKR", "PBB", 
+                                       "Other", "BERSATU", "WARISAN", "MCA", 
+                                       "AMANAH", "PRS", "PBS", "SUPP"))))) + 
+  geom_col(aes(fill = ethnicity)) + 
   geom_vline(xintercept = .25, linetype = "longdash", colour = "white", alpha = .4) +
   geom_vline(xintercept = .5, linetype = "longdash", colour = "white", alpha = .4) +
   geom_vline(xintercept = .75, linetype = "longdash", colour = "white", alpha = .4) +
   scale_fill_viridis_d() + 
   scale_x_continuous(label = percent) + 
-  labs(x = "% of candidates", 
-       y = "Party", 
-       title = "Only 10.5% of candidates since 2006 have been women", 
-       subtitle = "Only showing politicians who ran since the redelineation in 2006", 
-       fill = "Sex")
+  labs(x = "% of MPs", 
+       title = "The only true multi-ethnic parties are BEBAS and PKR", 
+       subtitle = "Since 2006; parties sorted by number of MPs", 
+       fill = "Candidate\nethnicity")
+  
+
 ```
 
-PKR has backtracked on its commitment to one-person-one-vote in its [internal elections](https://www.iseas.edu.sg/articles-commentaries/iseas-perspective/2024-21-a-deep-dive-into-malaysias-peoples-justice-party-pkr-by-james-chai/): executive committees at the national and division levels are now chosen by delegates. 
+<br> 
 
-Efforts have been made in recent years to ease this burden. First, PKR adopted a hybrid selection system for the first time in 2022,[69] where the executive committees at the national and division levels are chosen by delegates (see Table 6 above). This halves the maximum votes available to the members, which had proven to be too many for members in the first place (‘over-democracy’).[70] Two, introducing online voting (via the ‘ADIL’ application) that will minimise logistics and potential cheating. In 2022, more
+## The collapse of UMNO and Islamic politics
+
+According to [Deivasagayam](https://msocialsciences.com/index.php/mjssh/article/view/3248/2134), the two main cleavages in Malaysian society -- race and religion -- have converged, contributing greatly to UMNO's downfall. He continues, "UMNO consistently positioned itself as the exclusive advocate and guardian of Malay rights and privileges". However, by engaging in an "Islamisation Race" to stave off PAS, UMNO inadvertently legitimised PAS in the eyes of Muslim voters, and when it advocated for Malay Islamic Supremacy, it set that stage for the convergence for race and religion which would later ultimately benefit PAS and BERSATU, which demonstrated the possibility of a Malay-Muslim governance structure which excluded minorities. 
 
 
+We see, from the plot below, the extent of UMNO's electoral collapse. From its peak of holding more than 100 seats during the Badawi period, it now holds less seats than either PAS, DAP, PKR or Bersatu. 
 
-
-
-[James Chin](https://www.commonwealthroundtable.co.uk/commonwealth/eurasia/malaysia/research-article-anwars-long-walk-to-power-the-2022-malaysian-general-elections/) at the Commonwealth Roundtable argues that there is no middle ground left in Malaysian politics. 
+<br>
 
 ```{r}
 ballots |> 
-  filter(date > "2006-01-01") |> 
   mutate(count = 1) |> 
   filter(result %in% c("won", "won_uncontested")) |> 
-  count(party, sort = TRUE)
+  filter(str_detect(election, "SE")) |> 
+  mutate(year = year(date)) |> 
+  group_by(election) |> 
+  mutate(year = min(year)) |> 
+  ungroup() |> 
+  mutate(party = fct_lump(party, n = 12, w = votes)) |> 
+  group_by(year, party) |> 
+  summarise(mps = sum(count), 
+            .groups = "drop") |> 
+  ggplot(aes(x = year, y = mps, group = party)) + 
+  geom_line(aes(colour = party), 
+            linewidth = 1.05, 
+            alpha = .8) + 
+  # scale_colour_manual(
+  #   values = c(
+  #     "UMNO" = "#30123BFF",
+  #     "MCA" = "#4454C4FF",
+  #     "MIC" = "#4490FEFF",
+  #     "BERSATU" = "#1FC8DEFF",
+  #     "PAS" = "#29EFA2FF",
+  #     "GERAKAN" = "#7DFF56FF",
+  #     "PBB" = "#C1F334FF",
+  #     "PBS" = "#F1CA3AFF",
+  #     "USNO" = "#FE922AFF",
+  #     "SUPP" = "#EA4F0DFF",
+  #     "PKR" = "#BE2102FF",
+  #     "DAP" = "#7A0403FF",
+  #     "Other" = "grey50"
+  #     
+  #   )
+  # ) +
+  scale_colour_viridis_d(option = "turbo") +
+  scale_x_continuous(breaks = seq(1955, 2026, 5)) +
+  scale_y_continuous(breaks = seq(0, 300, 20)) +
+  guides(colour = guide_legend(override.aes = list(linewidth = 2, 
+                                                   alpha = 1))) + 
+  labs(x = "", 
+       y = "Number of MPs", 
+       title = "The collapse of UMNO has left PAS and DAP as the largest parties", 
+       colour = "") + 
+  theme(axis.text.x = element_text(size = 7))
 ```
 
 
-```{r}
+```{r parties-mp-share}
 ballots |> 
   mutate(count = 1) |> 
   filter(result %in% c("won", "won_uncontested")) |> 
@@ -602,9 +727,15 @@ ballots |>
        colour = "") + 
   theme(axis.text.x = element_text(size = 7))
 ```
+<br>
 
+However, when we examine their share of votes, we see that their long dominance of parliament was always more fragile than was perceived. At no time after 1960 did UMNO ever win more than 40% of the votes. Additionally, the Badawi peak of `r filter(ballots, election == "GE-11" & result %in% c("won", "won_uncontested") & party == "UMNO") |> nrow()` seats was accomplished with only 35% of the national vote, indicating their reliance on a first-past-the-post system. 
 
-```{r}
+However, though their share of votes is lower than it has ever been, UMNO still, marginally, received more votes than any other party. 
+
+<br> 
+
+```{r parties-vote-share}
 ballots |>  
   filter(str_detect(election, "GE")) |>
   mutate(year = year(date)) |> 
@@ -629,15 +760,21 @@ ballots |>
   scale_y_continuous(labels = percent, breaks = seq(0, .6, .1)) +
   labs(x = "", 
        y = "Share of popular vote", 
-       title = "UMNO still has, very marginally, the largest share of votes", 
+       title = "UMNO still has, very marginally, the largest share of votes",
+       subtitle = "But it has never won more than 40% of votes since the formation of the Federation", 
        colour = "") + 
   theme(axis.text.x = element_text(size = 7))
   
   
 ```
 
-
 <br> 
+
+Recalling Deivasagayam's arguments, [ISEAS](https://www.iseas.edu.sg/wp-content/uploads/2024/04/TRS12_24.pdf) concludes that "the sense of Islamic identity and belonging often supersedes the allure of economic development for Malay youths when choosing how to cast their vote". 
+
+This speaks to not only UMNO, PAS and Bersatu have pushed, resulting in 65% of respondents in Muslim Youth Survey saying that Muslims should only vote for Muslim leaders, but also to an unfair economic system where whatever economic development is meagre and piecemeal, and insufficient to attract voters.
+
+
 
 The disappearance of the Malaysian Indian Congress and the Malaysian Chinese Association from federal parliament 
 
@@ -660,21 +797,23 @@ Ethnic, but now religious cleavage.
 
 Fracture within Bersatu
 
+## So what does this mean for Pakatan Harapan? 
+
+[Marzuki Mohamad and Ibrahim Suffian](https://www.iseas.edu.sg/articles-commentaries/iseas-perspective/2023-20-malaysias-15th-general-election-ethnicity-remains-the-key-factor-in-voter-preferences-by-marzuki-mohamad-and-ibrahim-suffian/) argue that ethnicity remains the most important political and social cleavage, citing a stark dichotomy in how the Perikatan Nasional administration was perceived by  Malays and non-Malays.  
+
+Is this why the malapportionment deal with GRS is so important? Because Pakatan Harapan cannot envision itself winning over a majority of Malay voters? 
+
+Pakatan Harapan seems unwilling to engage in the Islamisation Race or put forward a competing vision of a more moderate Islam, possibly out of fears that doing so would alienate its core non-Muslim base and anger conservative Muslims.
 
 
 
-```{r}
-viridis_pal(option = "turbo")(12)
-```
+There is a more revealing dichotomy between Malay and non-Malay voters’ perception towards the government which points to an enduring ethnocentric political choice. The survey found that 85% of Malay voters felt that the PN government protects the interest of the Malays, while 77% of non-Malay voters believed the government does not treat all races equally. This is key to understanding political choices among different ethnic groups in Malaysia, not only in the 15th General Election, but also in previous elections.
 
-```{r}
-
-```
+Be that as it may, a closer look at BN and PN leaders’ approval rating among Malay voters reveals a slightly different scenario. PN Chairman and former Prime Minister, Muhyiddin Yassin, received a higher approval rating (67%) compared to BN Chairman, Zahid Hamidi (19%).
 
 
-```{r}
-show_col(viridis_pal(option = "turbo")(12))
-```
+ 
+
 
 
 ```{r}
@@ -1035,3 +1174,48 @@ ballots |>
 
 
 
+
+
+```{r}
+ballots |> 
+  filter(date > "2006-01-01") |> 
+  mutate(count = 1) |> 
+  filter(rank <= 3) |> 
+  mutate(party = fct_lump(party, n = 12)) |> 
+  group_by(party, sex) |> 
+  summarise(count = sum(count), .groups = "drop") |> 
+  group_by(party) |> 
+  mutate(total_candidates = sum(count)) |> 
+  ungroup() |> 
+  mutate(pc = count / total_candidates, 
+         sex = ifelse(sex == "F", "Female", "Male")) |> 
+  ggplot(aes(x = pc, y = fct_rev(party))) + 
+  geom_col(aes(fill = sex)) + 
+  geom_vline(xintercept = .25, linetype = "longdash", colour = "white", alpha = .4) +
+  geom_vline(xintercept = .5, linetype = "longdash", colour = "white", alpha = .4) +
+  geom_vline(xintercept = .75, linetype = "longdash", colour = "white", alpha = .4) +
+  scale_fill_viridis_d() + 
+  scale_x_continuous(label = percent) + 
+  labs(x = "% of candidates", 
+       y = "Party", 
+       title = "Only 10.5% of candidates since 2006 have been women", 
+       subtitle = "Only showing politicians who ran since the redelineation in 2006", 
+       fill = "Sex")
+```
+
+PKR has backtracked on its commitment to one-person-one-vote in its [internal elections](https://www.iseas.edu.sg/articles-commentaries/iseas-perspective/2024-21-a-deep-dive-into-malaysias-peoples-justice-party-pkr-by-james-chai/): executive committees at the national and division levels are now chosen by delegates. 
+
+Efforts have been made in recent years to ease this burden. First, PKR adopted a hybrid selection system for the first time in 2022,[69] where the executive committees at the national and division levels are chosen by delegates (see Table 6 above). This halves the maximum votes available to the members, which had proven to be too many for members in the first place (‘over-democracy’).[70] Two, introducing online voting (via the ‘ADIL’ application) that will minimise logistics and potential cheating. In 2022, more
+
+
+
+
+[James Chin](https://www.commonwealthroundtable.co.uk/commonwealth/eurasia/malaysia/research-article-anwars-long-walk-to-power-the-2022-malaysian-general-elections/) at the Commonwealth Roundtable argues that there is no middle ground left in Malaysian politics. 
+
+```{r}
+ballots |> 
+  filter(date > "2006-01-01") |> 
+  mutate(count = 1) |> 
+  filter(result %in% c("won", "won_uncontested")) |> 
+  count(party, sort = TRUE)
+```
