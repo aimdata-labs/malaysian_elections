@@ -35,6 +35,7 @@ format:
     embed-resources: true
     link-external-icon: true
     link-external-newwindow: true
+    html-table-processing: none
 
 editor: source
 

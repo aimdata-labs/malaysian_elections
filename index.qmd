@@ -247,6 +247,31 @@ median_age <- tribble(~year, ~median_age,
 ```
 
 
+**Acronyms**
+```{r table-acronyms, echo = FALSE, message=FALSE, warning=FALSE}
+tribble(
+  ~acronym, ~name, 
+  "BN", "Barisan Nasional",  
+  "DAP", "Democratic Action Party",
+  "GRS", "Gabungan Rakyat Sabah", 
+  "GPS", "Gabnungan Parti Sarawak",
+  "MCA", "Malaysian Chinese Association", 
+  "MIC", "Malaysian Indian Congress", 
+  "PAS", "Parti Islam Se-Malaysia", 
+  "PH", "Pakatan Harapan", 
+  "PKR", "Parti Keadilan Rakyat", 
+  "PN", "Perikatan Nasional", 
+  "SUPP", "Sarawak United People's Party", 
+  "UMNO", "United Malays National Organisation", 
+  "USA", "United Sabah Alliance"
+) |>  
+  kable(col.names = NULL, format = "html") |> 
+  kable_classic(bootstrap_options = c("condensed"), 
+                full_width = FALSE, 
+                position = "float_left")
+```
+
+<br>
 
 # Introduction
 
