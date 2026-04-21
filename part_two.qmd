@@ -211,8 +211,9 @@ tribble(
   ~acronym, ~name, 
   "BN", "Barisan Nasional",  
   "DAP", "Democratic Action Party",
-  "GRS", "Gabungan Rakyat Sabah", 
   "GPS", "Gabnungan Parti Sarawak",
+  "GRS", "Gabungan Rakyat Sabah", 
+  "GS", "Gagasan Sejahtera", 
   "MCA", "Malaysian Chinese Association", 
   "MIC", "Malaysian Indian Congress", 
   "PAS", "Parti Islam Se-Malaysia", 
@@ -653,7 +654,7 @@ ballots |>
 According to [Deivasagayam](https://msocialsciences.com/index.php/mjssh/article/view/3248/2134), the two main cleavages in Malaysian society -- race and religion -- have converged, contributing greatly to UMNO's downfall. He continues, "UMNO consistently positioned itself as the exclusive advocate and guardian of Malay rights and privileges". However, by engaging in an "Islamisation Race" to stave off PAS, UMNO inadvertently legitimised PAS in the eyes of Muslim voters, and when it advocated for Malay Islamic Supremacy, it set that stage for the convergence for race and religion which would later ultimately benefit PAS and BERSATU, which demonstrated the possibility of a Malay-Muslim governance structure which excluded minorities. 
 
 
-We see, from the plot below, the extent of UMNO's electoral collapse. From its peak of holding more than 100 seats during the Badawi period, it now holds less seats than either PAS, DAP, PKR or Bersatu. 
+We see, from the plot below, the extent of UMNO's electoral collapse. From its peak of `r filter(ballots, election == "GE-11" & result %in% c("won", "won_uncontested") & party == "UMNO") |> nrow()` seats under Badawi, it now holds less seats than either PAS, DAP, PKR or Bersatu. 
 
 <br>
 
@@ -830,7 +831,6 @@ Is this why the malapportionment deal with GRS is so important? Because Pakatan 
 Pakatan Harapan seems unwilling to engage in the Islamisation Race or put forward a competing vision of a more moderate Islam, possibly out of fears that doing so would alienate its core non-Muslim base and anger conservative Muslims.
 
 
-
 There is a more revealing dichotomy between Malay and non-Malay voters’ perception towards the government which points to an enduring ethnocentric political choice. The survey found that 85% of Malay voters felt that the PN government protects the interest of the Malays, while 77% of non-Malay voters believed the government does not treat all races equally. This is key to understanding political choices among different ethnic groups in Malaysia, not only in the 15th General Election, but also in previous elections.
 
 Be that as it may, a closer look at BN and PN leaders’ approval rating among Malay voters reveals a slightly different scenario. PN Chairman and former Prime Minister, Muhyiddin Yassin, received a higher approval rating (67%) compared to BN Chairman, Zahid Hamidi (19%).
@@ -839,13 +839,13 @@ Be that as it may, a closer look at BN and PN leaders’ approval rating among M
  
 # Can you win with only Malay voters? 
 
-Whilst public support for BN has faded considerably, between BN and PN, there 
+The PN/BN government did prove
+
+Whilst public support for BN has faded considerably, between BN and PN, there was majority support for a Malay-supremacist (*Ketuanan Melayu*) government which collected more than 50% of votes in GE15. But BN pulled out of the coalition 
+
+
 
 ```{r}
-
-mutate(coalition = fct_lump(coalition, n = 7, w = votes), 
-         coalition = forcats::fct_drop(coalition))
-
 ballots |> 
   mutate(count = 1) |> 
   mutate(coalition = ifelse(
@@ -865,6 +865,32 @@ ballots |>
   facet_wrap(~ election) + 
   scale_fill_viridis_d(option = "magma", begin = .1, end = .9) + 
   scale_x_continuous(labels = percent) + 
+  labs(x = "% of votes", 
+       y = "", 
+       fill = "Coalition") + 
+  theme(strip.background = element_rect(fill = "grey30"))
+```
+
+```{r}
+ballots |> 
+  mutate(count = 1) |> 
+  mutate(coalition = ifelse(
+    coalition %in% c("USA", "ALONE", "GTA"), "Other", coalition
+  )) |> 
+  filter(election %in% c("GE-15", "GE-14", "GE-13", "GE-12") & 
+           result %in% c("won", "won_uncontested")) |> 
+  group_by(election, coalition) |>
+  summarise(votes = sum(votes), 
+            seats = sum(count), 
+            .groups = "drop") |> 
+  group_by(election) |> 
+  mutate(total_votes = sum(votes)) |> 
+  ungroup() |> 
+  mutate(votes_pc = votes / total_votes) |> 
+  ggplot(aes(x = seats, y = fct_rev(coalition), fill = coalition)) + 
+  geom_col() + 
+  facet_wrap(~ election) + 
+  scale_fill_viridis_d(option = "magma", begin = .1, end = .9) + 
   labs(x = "% of votes", 
        y = "", 
        fill = "Coalition") + 
