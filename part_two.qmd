@@ -30,6 +30,9 @@ library(stringr)
 library(sf)
 library(ggmagnify)
 library(ggthemes)
+library(glmnet)
+library(caret)
+library(plotly)
 
 `%out%` <- Negate(`%in%`)
 options(scipen = 100)
@@ -843,7 +846,7 @@ The PN/BN government did prove
 
 Whilst public support for BN has faded considerably, between BN and PN, there was majority support for a Malay-supremacist (*Ketuanan Melayu*) government which collected more than 50% of votes in GE15. But BN pulled out of the coalition 
 
-
+The current unity (*Madani*) government is heavily reliant on BN for both a parliamentary majority as well as a majority of the vote share. 
 
 ```{r}
 ballots |> 
@@ -854,7 +857,7 @@ ballots |>
   filter(election %in% c("GE-15", "GE-14", "GE-13", "GE-12")) |> 
   group_by(election, coalition) |>
   summarise(votes = sum(votes), 
-            mps = sum(count), 
+            candidates = sum(count), 
             .groups = "drop") |> 
   group_by(election) |> 
   mutate(total_votes = sum(votes)) |> 
@@ -862,7 +865,7 @@ ballots |>
   mutate(votes_pc = votes / total_votes) |> 
   ggplot(aes(x = votes_pc, y = fct_rev(coalition), fill = coalition)) + 
   geom_col() + 
-  facet_wrap(~ election) + 
+  facet_wrap(~ election, scales = "free_y") + 
   scale_fill_viridis_d(option = "magma", begin = .1, end = .9) + 
   scale_x_continuous(labels = percent) + 
   labs(x = "% of votes", 
@@ -889,14 +892,231 @@ ballots |>
   mutate(votes_pc = votes / total_votes) |> 
   ggplot(aes(x = seats, y = fct_rev(coalition), fill = coalition)) + 
   geom_col() + 
-  facet_wrap(~ election) + 
+  facet_wrap(~ election, scales = "free_y") + 
   scale_fill_viridis_d(option = "magma", begin = .1, end = .9) + 
+  scale_x_continuous(breaks = seq(0, 150, 20)) +
+  labs(x = "Parliament seats", 
+       y = "", 
+       fill = "Coalition") + 
+  theme(strip.background = element_rect(fill = "grey30"))
+```
+
+
+
+
+
+```{r}
+ballots |> 
+  mutate(count = 1) |> 
+  mutate(coalition = ifelse(
+    coalition %in% c("USA", "ALONE", "GTA", "WARISAN-PLUS", "GASAK"), "Other", coalition
+  )) |> 
+  filter(election %in% c("SE-15", "SE-14", "SE-13", "SE-12")) |> 
+  group_by(election, coalition) |>
+  summarise(votes = sum(votes), 
+            candidates = sum(count), 
+            .groups = "drop") |> 
+  group_by(election) |> 
+  mutate(total_votes = sum(votes)) |> 
+  ungroup() |> 
+  mutate(votes_pc = votes / total_votes) |> 
+  ggplot(aes(x = votes_pc, y = fct_rev(coalition), fill = coalition)) + 
+  geom_col() + 
+  facet_wrap(~ election, scales = "free_y") + 
+  scale_fill_viridis_d(option = "magma", begin = .1, end = .9) + 
+  scale_x_continuous(labels = percent) + 
   labs(x = "% of votes", 
        y = "", 
        fill = "Coalition") + 
   theme(strip.background = element_rect(fill = "grey30"))
 ```
 
+# Modelling
+
+Can Harapan/Rakyat win 
+the testing is the 
+
+
+Poverty incidence, population density, proportion_bumi_peninsula, proportion_bumi_east_malaysia, proportion_chinese, proportion_indian, gini, total_population
+
+
+
+```{r}
+training <- census_fed |> 
+  mutate(pc_bumi_peninsula = ifelse(
+    east_malaysia == 0, pc_bumi, 0), 
+    pc_bumi_east_malaysia = ifelse(
+      east_malaysia == 1, pc_bumi, 0
+    )) |> 
+  select(
+    parlimen, population_density, pc_bumi_peninsula, pc_bumi_east_malaysia, 
+    pc_chinese, pc_indian, gini, income_avg
+  ) |> 
+  left_join(
+    ballots |>
+      filter(election == "SE-15") |>
+      rbind(ballots |>
+              filter(date == "2021-12-18" & state == "Sarawak")) |>
+      left_join(census_dun |>
+                  distinct(dun, parlimen), by = c("seat" = "dun")) |>
+      group_by(parlimen) |>
+      summarise(
+        ph_votes = sum(votes[coalition == "PH"], na.rm = TRUE),
+        total_votes = sum(votes, na.rm = TRUE),
+        .groups = "drop"
+      ) |>
+      mutate(pc_ph_votes = ph_votes / total_votes), 
+    by = "parlimen"
+  ) |> 
+  filter(!is.na(pc_ph_votes)) |> 
+  mutate_at(
+    c("population_density", "pc_bumi_peninsula", "pc_bumi_east_malaysia", 
+      "pc_chinese", "pc_indian", "gini", "income_avg", 
+      "ph_votes", "total_votes"), 
+    function(x){
+      (x - mean(x) / sd(x))
+    }
+  ) |> 
+  na.omit()
+```
+
+```{r}
+testing <- census_fed |> 
+  mutate(pc_bumi_peninsula = ifelse(
+    east_malaysia == 0, pc_bumi, 0), 
+    pc_bumi_east_malaysia = ifelse(
+      east_malaysia == 1, pc_bumi, 0
+    )) |> 
+  select(
+    parlimen, population_density, pc_bumi_peninsula, pc_bumi_east_malaysia, 
+    pc_chinese, pc_indian, gini, income_avg
+  ) |> 
+  left_join(
+    ballots |> 
+      filter(election == "GE-15") |> 
+      group_by(seat) |> 
+      summarise(ph_votes = sum(votes[coalition == "PH"], na.rm = TRUE), 
+                total_votes = sum(votes, na.rm = TRUE), 
+                .groups = "drop") |>
+      mutate(pc_ph_votes = ph_votes / total_votes), 
+    by = c("parlimen" = "seat")
+  ) |> 
+  mutate_at(
+    c("population_density", "pc_bumi_peninsula", "pc_bumi_east_malaysia", 
+      "pc_chinese", "pc_indian", "gini", "income_avg", 
+      "ph_votes", "total_votes"), 
+    function(x){
+      (x - mean(x) / sd(x))
+    }
+  ) |> 
+  na.omit()
+
+```
+
+```{r}
+stepwise_model <- step(lm(
+  pc_ph_votes ~ population_density + pc_bumi_peninsula + pc_bumi_east_malaysia + 
+  pc_chinese + pc_indian + gini + income_avg, 
+  data = training, 
+  direction = "backward"
+))
+
+summary(stepwise_model)
+```
+
+
+```{r}
+glmnet_model <- train(
+  pc_ph_votes ~ population_density + 
+    pc_bumi_peninsula + pc_bumi_east_malaysia + pc_indian + 
+    gini, 
+  data = training, 
+  method = "glmnet", 
+  metric = "RMSE", 
+  trControl = trainControl(method = "LOOCV"), 
+  preProcess = c("center", "scale"), 
+  tuneLength = 10
+)
+
+glmnet_model
+```
+
+```{r}
+preds <- testing %>%
+  mutate(
+    aic_pred = predict(object = stepwise_model, newdata = .),
+    glmnet_pred = predict(object = glmnet_model, newdata = testing)
+  ) %>%
+  mutate(pred = (aic_pred + glmnet_pred) / 2) %>%
+  pull(pred)
+```
+
+```{r}
+testing$proj_ph_vote <- preds
+```
+
+
+
+```{r}
+test_plot <- testing |> 
+  left_join(
+    ballots |> 
+      filter(election == "GE-15" & result %in% c("won", "won_uncontested")) |> 
+      select(state, seat, coalition), 
+    by = c("parlimen" = "seat")
+  ) |> 
+  ggplot(aes(x = pc_ph_votes, y = proj_ph_vote)) + 
+  geom_point(aes(colour = coalition,
+                 text = paste0(parlimen, ",", "\n", 
+                               state, ",", "\n", 
+                               "projected: ", proj_ph_vote, "\n", 
+                               "actual: ", pc_ph_votes, "\n", 
+                               "winner: ", coalition))) +
+  geom_smooth(method = "lm") + 
+  scale_colour_viridis_d(option = "turbo") + 
+  labs(fill = "Winning\ncoalition", 
+       x = "% PH votes in GE-15", 
+       y = "Projected % of PH votes")
+
+ggplotly(test_plot, tooltip = c("text"))
+
+ggplotly(parrmap_org, tooltip = c("text", "fill")) %>%
+  layout(title = list(text = paste0(
+    "Map of parrishes by decision tree node (colour) & if organisations present (alpha)",
+                                    "<br>",
+                                    "<sup>",
+                                     "mouse over for details; drag and click to select and zoom; double-click legend select/deselect","</sup>")))
+```
+
+
+
+
+```{r}
+ballots |> 
+  count(date)
+  filter()
+  glimpse()
+  
+ballots |> filter(date == "2021-12-18") |> count(state, seat)
+
+
+se_15 <- ballots |> filter(election == "SE-15") |> count(seat)
+
+ballots |> filter(election == "SE-15") |> count(date)
+
+
+```
+
+
+
+
+```{r}
+census_dun |> 
+  filter(
+    dun %out% se_15$seat
+  ) |> 
+  count(state, dun)
+```
 
 
 ```{r}
