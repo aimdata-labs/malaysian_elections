@@ -281,3 +281,80 @@ ballots |>
 
 
 PKR upholds its commitment to multiracialism, at least in the candidates that it has fielded. Additionally, the demographics of the seats it governs [largely mirrors](https://www.iseas.edu.sg/articles-commentaries/iseas-perspective/2024-21-a-deep-dive-into-malaysias-peoples-justice-party-pkr-by-james-chai/) the demographics of peninsula Malaysia.
+
+ballots |>  
+  filter(str_detect(election, "GE")) |>
+  mutate(year = year(date)) |> 
+  group_by(election) |> 
+  mutate(year = min(year)) |>
+  mutate(coalition = fct_lump(coalition, n = 7, w = votes), 
+         coalition = forcats::fct_drop(coalition)) |>
+  group_by(year, coalition) |> 
+  summarise(votes = sum(votes), .groups = "drop") |>
+  group_by(year) |> 
+  mutate(total_votes = sum(votes)) |> 
+  ungroup() |> 
+  mutate(votes_pc = votes / total_votes) %>% 
+  ggplot(aes(x = year, y = votes_pc, group = coalition)) + 
+  geom_line(aes(colour = coalition), 
+            linewidth = 1.05, 
+            alpha = .8) + 
+  scale_colour_viridis_d(option = "turbo", drop = TRUE, limits = force) +
+  scale_x_continuous(breaks = seq(1955, 2026, 5)) +
+  guides(colour = guide_legend(override.aes = list(linewidth = 2, 
+                                                   alpha = 1))) + 
+  scale_y_continuous(labels = percent, breaks = seq(0, .9, .1)) +
+  labs(x = "", 
+       y = "Share of popular vote", 
+       title = "UMNO still has, very marginally, the largest share of votes",
+       subtitle = "But it has never won more than 40% of votes since the formation of the Federation", 
+       colour = "") + 
+  theme(axis.text.x = element_text(size = 7))
+
+
+ballots |> 
+  mutate(count = 1) |> 
+  filter(result %in% c("won", "won_uncontested")) |> 
+  filter(str_detect(election, "SE")) |> 
+  mutate(year = year(date)) |> 
+  group_by(election) |> 
+  mutate(year = min(year)) |> 
+  ungroup() |> 
+  mutate(party = fct_lump(party, n = 12, w = votes)) |> 
+  group_by(year, party) |> 
+  summarise(mps = sum(count), 
+            .groups = "drop") |> 
+  ggplot(aes(x = year, y = mps, group = party)) + 
+  geom_line(aes(colour = party), 
+            linewidth = 1.05, 
+            alpha = .8) + 
+  # scale_colour_manual(
+  #   values = c(
+  #     "UMNO" = "#30123BFF",
+  #     "MCA" = "#4454C4FF",
+  #     "MIC" = "#4490FEFF",
+  #     "BERSATU" = "#1FC8DEFF",
+  #     "PAS" = "#29EFA2FF",
+  #     "GERAKAN" = "#7DFF56FF",
+  #     "PBB" = "#C1F334FF",
+  #     "PBS" = "#F1CA3AFF",
+  #     "USNO" = "#FE922AFF",
+  #     "SUPP" = "#EA4F0DFF",
+  #     "PKR" = "#BE2102FF",
+  #     "DAP" = "#7A0403FF",
+  #     "Other" = "grey50"
+  #     
+  #   )
+  # ) +
+  scale_colour_viridis_d(option = "turbo") +
+  scale_x_continuous(breaks = seq(1955, 2026, 5)) +
+  scale_y_continuous(breaks = seq(0, 300, 20)) +
+  guides(colour = guide_legend(override.aes = list(linewidth = 2, 
+                                                   alpha = 1))) + 
+  labs(x = "", 
+       y = "Number of MPs", 
+       title = "The collapse of UMNO has left PAS and DAP as the largest parties", 
+       colour = "") + 
+  theme(axis.text.x = element_text(size = 7))
+
+[Marzuki Mohamad and Ibrahim Suffian](https://www.iseas.edu.sg/articles-commentaries/iseas-perspective/2023-20-malaysias-15th-general-election-ethnicity-remains-the-key-factor-in-voter-preferences-by-marzuki-mohamad-and-ibrahim-suffian/) argue that ethnicity remains the most important political and social cleavage, citing a stark dichotomy in how the Perikatan Nasional administration was perceived by Malays and non-Malays.  

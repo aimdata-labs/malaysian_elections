@@ -1,6 +1,6 @@
 ---
 title: "Malaysian Elections"
-subtitle: "Part one: Ethnicity"
+subtitle: "Part two: Ethnicity and Election Predictions"
 author: "Sean Ng"
 organization: "AIMdata"
 date-modified: "11 January 2026"
@@ -440,6 +440,12 @@ ballots |>
 ```
 
 
+<br>
+
+From the plot below, we also see that Bumiputeras tend only to win when a constituency has a population that is more than 50% Bumi. 
+
+<br>
+
 
 ```{r}
 ballots |>
@@ -475,13 +481,14 @@ ballots |>
   theme(strip.background = element_rect(fill = "grey20"))
 
 ```
+
 <br>
 
+The coalition which benefited primarily from this racialised dimension to elections has been Barisan Nasional. 
 
+Almost all of BN's electoral wins come from constituencies which are more than 75% Bumiputera. This is the same for Perikatan Nasional. Conversely, constituencies which are more than 75% Bumiputera almost never vote for parties under the Pakatan Harapan (or its predecessor Pakatan Rakyat) coalition. 
 
-We'll set the threshold for being included in analysis at 3% of votes 
-
-
+<br>
 
 ```{r}
 ballots |>
@@ -529,17 +536,17 @@ ballots |>
 
 <br> 
 
-Almost all of BN's electoral wins come from constituencies which are more than 75% Bumiputera. This is the same for Perikatan Nasional. Conversely, constituencies which are more than 75% Bumiputera almost never vote for parties under the Pakatan Harapan (or its predecessor Pakatan Rakyat) coalition. 
 
 A significant minority of non-Bumiputera MPs were from BN. Additionally, most of those wins came from constituencies with higher Bumiputera populations, indicating that party loyalty (which itself has racial connotations) were stronger than the ethnicity of individual candidates. 
 
-<br>
- 
+<br><br><br>
 
+# Ethnic makeup of parties and coalitions
 
-The most racially-homogeneous parties are in East Malaysia. 
+Amongst the various coalitions, East Malysian Coalitions and Gagasan Sejahtera were the most racially homogenous. Proportionally, Pakatan Harapan and Pakatan Rakyat both fielded more Malay candidates than Barisan Nasional. 
 
-Pakatan Harapan and Pakatan Rakyat fielded both more Malay candidates proportionally than Barsian Nasional. Of the major coalitions, Perikatan Nasional had the lowest proportion of minority candidates. 
+However, as noted by [Mustafa, Kartini and Nazri](https://www.frontiersin.org/journals/political-science/articles/10.3389/fpos.2026.1721966/full), whilst BN might be multiethnic in nature, the coalition was not consociational, but was "sustained more by UMNO’s control and patronage than by genuine power-sharing". 
+
 
 <br>
 
@@ -572,9 +579,9 @@ ballots |>
 
 <br>
 
-Whilst many coalitions might be multiethnic in nature, [Mustafa, Kartini and Nazri](https://www.frontiersin.org/journals/political-science/articles/10.3389/fpos.2026.1721966/full) argue that, at least under the period of BN dominance, coalitions were not consociational, but were "sustained more by UMNO’s control and patronage than by genuine power-sharing". 
+The plot below shows the breakdown of candidates by ethnicity and party. No party reflects the racial make-up of the country. Amanah, Bersatu, PAS and UMNO are Malay parties, DAP, Gerakan and the MCA are Chinese parties. The MIC is an Indian party, PBB is a Sabahan party and WARISAN is a Sarawakian party. 
 
-When we look at party level, we note that BEBAS and PKR are the only true multiracial parties, with all other parties being dominated by a main ethnic group. 
+When we look at party level, we note that BEBAS and PKR are the only true multiracial parties, with all other parties being dominated by a main ethnic group, which only underscores the heavy racial component of Malaysian politics. 
 
 <br> 
 
@@ -612,7 +619,6 @@ ballots |>
 
 <br>
 
-No party reflects the racial make-up of the country. Amanah, Bersatu, PAS and UMNO are Malay parties, DAP, Gerakan and the MCA are Chinese parties. The MIC is an Indian party, PBB is a Sabahan party and WARISAN is a Sarawakian party. 
 
 These patterns hold when we examine the candidates who actually won. The plot below shows the breakdown of MPs by party since 2006. 
 
@@ -650,63 +656,16 @@ ballots |>
 
 ```
 
-<br> 
+<br><br><br>
 
-## The collapse of UMNO and Islamic politics
+# The collapse of UMNO and Islamic politics
 
-According to [Deivasagayam](https://msocialsciences.com/index.php/mjssh/article/view/3248/2134), the two main cleavages in Malaysian society -- race and religion -- have converged, contributing greatly to UMNO's downfall. He continues, "UMNO consistently positioned itself as the exclusive advocate and guardian of Malay rights and privileges". However, by engaging in an "Islamisation Race" to stave off PAS, UMNO inadvertently legitimised PAS in the eyes of Muslim voters, and when it advocated for Malay Islamic Supremacy, it set that stage for the convergence for race and religion which would later ultimately benefit PAS and BERSATU, which demonstrated the possibility of a Malay-Muslim governance structure which excluded minorities. 
+According to [Deivasagayam](https://msocialsciences.com/index.php/mjssh/article/view/3248/2134), the two main cleavages in Malaysian society -- race and religion -- have converged, contributing to UMNO's downfall. He continues, "UMNO consistently positioned itself as the exclusive advocate and guardian of Malay rights and privileges". However, by engaging in an "Islamisation Race" to stave off PAS, UMNO inadvertently legitimised PAS in the eyes of Muslim voters, and when it advocated for Malay Islamic Supremacy, it set that stage for the convergence for race and religion which would later ultimately benefit PAS and BERSATU, which demonstrated the possibility of a Malay-Muslim governance structure which excluded minorities. 
 
 
 We see, from the plot below, the extent of UMNO's electoral collapse. From its peak of `r filter(ballots, election == "GE-11" & result %in% c("won", "won_uncontested") & party == "UMNO") |> nrow()` seats under Badawi, it now holds less seats than either PAS, DAP, PKR or Bersatu. 
 
 <br>
-
-```{r}
-ballots |> 
-  mutate(count = 1) |> 
-  filter(result %in% c("won", "won_uncontested")) |> 
-  filter(str_detect(election, "SE")) |> 
-  mutate(year = year(date)) |> 
-  group_by(election) |> 
-  mutate(year = min(year)) |> 
-  ungroup() |> 
-  mutate(party = fct_lump(party, n = 12, w = votes)) |> 
-  group_by(year, party) |> 
-  summarise(mps = sum(count), 
-            .groups = "drop") |> 
-  ggplot(aes(x = year, y = mps, group = party)) + 
-  geom_line(aes(colour = party), 
-            linewidth = 1.05, 
-            alpha = .8) + 
-  # scale_colour_manual(
-  #   values = c(
-  #     "UMNO" = "#30123BFF",
-  #     "MCA" = "#4454C4FF",
-  #     "MIC" = "#4490FEFF",
-  #     "BERSATU" = "#1FC8DEFF",
-  #     "PAS" = "#29EFA2FF",
-  #     "GERAKAN" = "#7DFF56FF",
-  #     "PBB" = "#C1F334FF",
-  #     "PBS" = "#F1CA3AFF",
-  #     "USNO" = "#FE922AFF",
-  #     "SUPP" = "#EA4F0DFF",
-  #     "PKR" = "#BE2102FF",
-  #     "DAP" = "#7A0403FF",
-  #     "Other" = "grey50"
-  #     
-  #   )
-  # ) +
-  scale_colour_viridis_d(option = "turbo") +
-  scale_x_continuous(breaks = seq(1955, 2026, 5)) +
-  scale_y_continuous(breaks = seq(0, 300, 20)) +
-  guides(colour = guide_legend(override.aes = list(linewidth = 2, 
-                                                   alpha = 1))) + 
-  labs(x = "", 
-       y = "Number of MPs", 
-       title = "The collapse of UMNO has left PAS and DAP as the largest parties", 
-       colour = "") + 
-  theme(axis.text.x = element_text(size = 7))
-```
 
 
 ```{r parties-mp-share}
@@ -757,9 +716,10 @@ ballots |>
 ```
 <br>
 
-However, when we examine their share of votes, we see that their long dominance of parliament was always more fragile than was perceived. At no time after 1960 did UMNO ever win more than 40% of the votes. Additionally, the Badawi peak of `r filter(ballots, election == "GE-11" & result %in% c("won", "won_uncontested") & party == "UMNO") |> nrow()` seats was accomplished with only 35% of the national vote, indicating their reliance on a first-past-the-post system. 
+However, when we examine their share of votes, we see that their long dominance of parliament was always more fragile than was perceived. At no time after 1960 did UMNO ever win more than 40% of the votes. Additionally, the Badawi peak of `r filter(ballots, election == "GE-11" & result %in% c("won", "won_uncontested") & party == "UMNO") |> nrow()` seats was accomplished with only 35% of the national vote, indicating their reliance on a first-past-the-post system. Though now, both UMNO and PKR are penalised by the first-past-the-post system, whereas PAS, DAP and Bersatu are each rewarded by it. 
 
-However, though their share of votes is lower than it has ever been, UMNO still, marginally, received more votes than any other party. 
+
+Finally, though their share of votes is lower than it has ever been, UMNO still, marginally, received more votes than any other party. 
 
 <br> 
 
@@ -800,41 +760,23 @@ ballots |>
 
 Recalling Deivasagayam's arguments, [ISEAS](https://www.iseas.edu.sg/wp-content/uploads/2024/04/TRS12_24.pdf) concludes that "the sense of Islamic identity and belonging often supersedes the allure of economic development for Malay youths when choosing how to cast their vote". 
 
-This speaks to not only UMNO, PAS and Bersatu have pushed, resulting in 65% of respondents in Muslim Youth Survey saying that Muslims should only vote for Muslim leaders, but also to an unfair economic system where whatever economic development is meagre and piecemeal, and insufficient to attract voters.
+This speaks to not only to the Islamisation race that UMNO, PAS and Bersatu have engaged in: 65% of respondents in Muslim Youth Survey saying that Muslims should only vote for Muslim leaders, but also to an unfair economic system where whatever economic development is meagre and piecemeal, and insufficient to attract voters.
 
-
-
-The disappearance of the Malaysian Indian Congress and the Malaysian Chinese Association from federal parliament 
 
 Recalling our earlier criticism of Anwar, is his bid with GRS meant to engineer a more permanent parliamentary majority without needing to win the popular vote? 
 
-UMNO is still, just barely, the largest party by share of votes. 
-A proportional voting system would see 
+<br><br><br>
 
-Redistricting would actually favour Malays. 
 
-The MCA still commands around 5% of the total vote
-
-The collapse of UMNO is clear, but also its dominance was perhaps, always overstated. Even at its peak (outside of the first general election in 1955), it has never commanded more than 40% of the national vote share. 
-
-UMNO and PKR are penalised by the first-past-the-post system, whereas PAS, DAP and Bersatu are each rewarded by it. 
-
-DAP's increases have been at the expense of the MCA. Following the 
-
-Ethnic, but now religious cleavage. 
-
-Fracture within Bersatu
-
-## So what does this mean for Pakatan Harapan? 
-
-[Marzuki Mohamad and Ibrahim Suffian](https://www.iseas.edu.sg/articles-commentaries/iseas-perspective/2023-20-malaysias-15th-general-election-ethnicity-remains-the-key-factor-in-voter-preferences-by-marzuki-mohamad-and-ibrahim-suffian/) argue that ethnicity remains the most important political and social cleavage, citing a stark dichotomy in how the Perikatan Nasional administration was perceived by  Malays and non-Malays.  
-
-Is this why the malapportionment deal with GRS is so important? Because Pakatan Harapan cannot envision itself winning over a majority of Malay voters? 
+ 
 
 Pakatan Harapan seems unwilling to engage in the Islamisation Race or put forward a competing vision of a more moderate Islam, possibly out of fears that doing so would alienate its core non-Muslim base and anger conservative Muslims.
 
-
 There is a more revealing dichotomy between Malay and non-Malay voters’ perception towards the government which points to an enduring ethnocentric political choice. The survey found that 85% of Malay voters felt that the PN government protects the interest of the Malays, while 77% of non-Malay voters believed the government does not treat all races equally. This is key to understanding political choices among different ethnic groups in Malaysia, not only in the 15th General Election, but also in previous elections.
+
+Is this why the malapportionment deal with GRS is so important? Because Pakatan Harapan cannot envision itself winning over a majority of Malay voters? 
+
+
 
 Be that as it may, a closer look at BN and PN leaders’ approval rating among Malay voters reveals a slightly different scenario. PN Chairman and former Prime Minister, Muhyiddin Yassin, received a higher approval rating (67%) compared to BN Chairman, Zahid Hamidi (19%).
 
@@ -844,11 +786,17 @@ Be that as it may, a closer look at BN and PN leaders’ approval rating among M
 
 The PN/BN government did prove
 
-Whilst public support for BN has faded considerably, between BN and PN, there was majority support for a Malay-supremacist (*Ketuanan Melayu*) government which collected more than 50% of votes in GE15. But BN pulled out of the coalition 
+<br><br><br>
+
+# Fragile coalitions
+
+Whilst public support for BN has faded considerably, between BN and PN, there was majority support for a Malay-supremacist (*Ketuanan Melayu*) government which collected more than 50% of votes in GE-15, an increase in the vote share garnered by BN and GS in GE-14. 
 
 The current unity (*Madani*) government is heavily reliant on BN for both a parliamentary majority as well as a majority of the vote share. 
 
-```{r}
+<br>
+
+```{r general-elections-vote-share}
 ballots |> 
   mutate(count = 1) |> 
   mutate(coalition = ifelse(
@@ -874,7 +822,13 @@ ballots |>
   theme(strip.background = element_rect(fill = "grey30"))
 ```
 
-```{r}
+<br>
+
+The two largest coalitions in parliament are now PH and PN. But since neither were able to win a commanding mandate in GE-15, BN was left to play kingmaker. 
+
+<br>
+
+```{r general-elections-seats}
 ballots |> 
   mutate(count = 1) |> 
   mutate(coalition = ifelse(
@@ -901,11 +855,15 @@ ballots |>
   theme(strip.background = element_rect(fill = "grey30"))
 ```
 
+<br>
 
+The plots below show vote share amongst the major coalitions by state elections. We see that that PN has managed to garner a lead over PH in state polls. 
 
+Perhaps this is what Anwar's agreement with GRS to increase the number of seats in Sabah is about. Though, we still emphasise that any further malapportionment would be, ultimately, an anti-democratic exercise. 
 
+<br>
 
-```{r}
+```{r state-elections-coalitions}
 ballots |> 
   mutate(count = 1) |> 
   mutate(coalition = ifelse(
@@ -931,17 +889,13 @@ ballots |>
   theme(strip.background = element_rect(fill = "grey30"))
 ```
 
-# Modelling
+<br><br><br>
 
-Can Harapan/Rakyat win 
-the testing is the 
-
-
-Poverty incidence, population density, proportion_bumi_peninsula, proportion_bumi_east_malaysia, proportion_chinese, proportion_indian, gini, total_population
+# Predictions for the GE-16
 
 
+```{r training-and-testing}
 
-```{r}
 training <- census_fed |> 
   mutate(pc_bumi_peninsula = ifelse(
     east_malaysia == 0, pc_bumi, 0), 
@@ -968,19 +922,17 @@ training <- census_fed |>
       mutate(pc_ph_votes = ph_votes / total_votes), 
     by = "parlimen"
   ) |> 
-  filter(!is.na(pc_ph_votes)) |> 
+  filter(!is.na(pc_ph_votes)) |>
+  mutate(population_density = log(population_density)) |> 
   mutate_at(
     c("population_density", "pc_bumi_peninsula", "pc_bumi_east_malaysia", 
-      "pc_chinese", "pc_indian", "gini", "income_avg", 
-      "ph_votes", "total_votes"), 
+      "pc_chinese", "pc_indian", "gini", "income_avg"), 
     function(x){
       (x - mean(x) / sd(x))
     }
   ) |> 
   na.omit()
-```
 
-```{r}
 testing <- census_fed |> 
   mutate(pc_bumi_peninsula = ifelse(
     east_malaysia == 0, pc_bumi, 0), 
@@ -1001,19 +953,19 @@ testing <- census_fed |>
       mutate(pc_ph_votes = ph_votes / total_votes), 
     by = c("parlimen" = "seat")
   ) |> 
+  mutate(population_density = log(population_density)) |> 
   mutate_at(
     c("population_density", "pc_bumi_peninsula", "pc_bumi_east_malaysia", 
-      "pc_chinese", "pc_indian", "gini", "income_avg", 
-      "ph_votes", "total_votes"), 
+      "pc_chinese", "pc_indian", "gini", "income_avg"), 
     function(x){
       (x - mean(x) / sd(x))
     }
   ) |> 
   na.omit()
-
 ```
 
-```{r}
+
+```{r stepwise-model}
 stepwise_model <- step(lm(
   pc_ph_votes ~ population_density + pc_bumi_peninsula + pc_bumi_east_malaysia + 
   pc_chinese + pc_indian + gini + income_avg, 
@@ -1021,15 +973,16 @@ stepwise_model <- step(lm(
   direction = "backward"
 ))
 
-summary(stepwise_model)
+# The stepwise model indicates that the most relevant variables to predicting 
+# PH performance are log(population density), % of population who are peninsula bumis, 
+# % of the population who are east malaysia bumis and % of the population who are indian
 ```
 
 
-```{r}
+```{r glmnet-model}
 glmnet_model <- train(
-  pc_ph_votes ~ population_density + 
-    pc_bumi_peninsula + pc_bumi_east_malaysia + pc_indian + 
-    gini, 
+  pc_ph_votes ~ population_density + pc_bumi_peninsula + pc_bumi_east_malaysia + 
+  pc_chinese + pc_indian + gini + income_avg, 
   data = training, 
   method = "glmnet", 
   metric = "RMSE", 
@@ -1038,10 +991,9 @@ glmnet_model <- train(
   tuneLength = 10
 )
 
-glmnet_model
 ```
 
-```{r}
+```{r preds}
 preds <- testing %>%
   mutate(
     aic_pred = predict(object = stepwise_model, newdata = .),
@@ -1049,16 +1001,16 @@ preds <- testing %>%
   ) %>%
   mutate(pred = (aic_pred + glmnet_pred) / 2) %>%
   pull(pred)
-```
 
-```{r}
 testing$proj_ph_vote <- preds
 ```
 
+In this section, we will try and predict Pakatan Harapan's performance (in this case, the percentage of votes we anticipate them to receive) in the upcoming general election. We have combined predictions from a stepwise model and a glmnet model below. 
 
+<br>
 
-```{r}
-test_plot <- testing |> 
+```{r plotting-results}
+pred_plot <- testing |> 
   left_join(
     ballots |> 
       filter(election == "GE-15" & result %in% c("won", "won_uncontested")) |> 
@@ -1069,86 +1021,136 @@ test_plot <- testing |>
   geom_point(aes(colour = coalition,
                  text = paste0(parlimen, ",", "\n", 
                                state, ",", "\n", 
-                               "projected: ", proj_ph_vote, "\n", 
-                               "actual: ", pc_ph_votes, "\n", 
-                               "winner: ", coalition))) +
+                               "Projected PH%: ", round(proj_ph_vote * 100, 2), "%", "\n", 
+                               "GE-15 PH%: ", round(pc_ph_votes * 100, 2), "%", "\n", 
+                               "GE-15 winner: ", coalition))) +
   geom_smooth(method = "lm") + 
   scale_colour_viridis_d(option = "turbo") + 
-  labs(fill = "Winning\ncoalition", 
+  scale_x_continuous(labels = percent, breaks = seq(0, 1, .1)) + 
+  scale_y_continuous(labels = percent, breaks = seq(0, 1, .1)) +
+  labs(colour = "Winning\ncoalition\nin GE15", 
        x = "% PH votes in GE-15", 
-       y = "Projected % of PH votes")
+       y = "Projected % of PH votes in GE-16")
 
-ggplotly(test_plot, tooltip = c("text"))
+ggplotly(pred_plot, tooltip = c("text")) |> 
+  layout(title = list(text = 
+                        paste0(
+                          "Interactive plot of GE-15 results and predictions for GE-16", 
+                          "<br>",
+                          "<sup>", "mouse over for details; drag and click to select and zoom; double-click legend select/deselect", "</sup>"
+                        )))
 
-ggplotly(parrmap_org, tooltip = c("text", "fill")) %>%
-  layout(title = list(text = paste0(
-    "Map of parrishes by decision tree node (colour) & if organisations present (alpha)",
-                                    "<br>",
-                                    "<sup>",
-                                     "mouse over for details; drag and click to select and zoom; double-click legend select/deselect","</sup>")))
 ```
+
+
+<br>
+
+We see the extent of the instability of the Madani's government's coalition from the plotted predictions above. Marginal seats where PH may seek to expand its reach will largely come at the expense of BN and vice versa.
+
+There are a fair number of marginal seats where PH received less than 40% of the votes in GE-15, but were still won by PH (many of these were three-cornered fights). These are all vulnerable for pickup by BN or PN. 
+
+PH may extend their reach by running better races and fielding better candidates in Bagan Datuk in Perak, Titiwangsa in KL, Tampin and Jempol in Negeri Sembilan, Kuala Langat in Selangor and Padang Serai in Kedah. 
+
+We finally also note that the model's predictions are not particularly reliable when it comes to seats in East Malaysia and a tendency to undercount PH's margin. 
+
+
+## Three-cornered fights
+
+However, given the loose alliances between the various coalitions, three-cornered fights have become much more prevalent. 
+
+How do we account for three-cornered fights? And what is their impact on PH? 
+How to factor in three-cornered fights into the model? 
 
 
 
 
 ```{r}
 ballots |> 
-  count(date)
-  filter()
-  glimpse()
-  
-ballots |> filter(date == "2021-12-18") |> count(state, seat)
-
-
-se_15 <- ballots |> filter(election == "SE-15") |> count(seat)
-
-ballots |> filter(election == "SE-15") |> count(date)
-
-
-```
-
-
-
-
-```{r}
-census_dun |> 
-  filter(
-    dun %out% se_15$seat
+  # Beginning of the collapse of BN and the opening up of 
+  # the political space
+  filter(date > "2013-01-01" & votes_perc >= 5) |> 
+  mutate(count = 1) |> 
+  group_by(seat, date, federal) |> 
+  summarise(candidates = sum(count), .groups = "drop") |> 
+  mutate(multicandidate = ifelse(
+    candidates > 2, 1, 0
+  )) |> 
+  left_join(
+    ballots |> 
+      filter(date > "2013-01-01" & 
+               result %in% c("won", "won_uncontested")) |> 
+      select(date, seat, winner = coalition), 
+    by = c("date", "seat")
   ) |> 
-  count(state, dun)
+  filter(candidates != 1) |> 
+  mutate(count = 1) |> 
+  ggplot(aes(x = candidates, y = count)) + 
+  geom_col(width = 1, 
+                 aes(fill = winner)) +
+  facet_wrap(~ federal, scales = "free") + 
+  scale_fill_viridis_d(option = "magma") + 
+  scale_x_continuous(breaks = seq(0, 7, 1)) + 
+  theme(strip.background = element_rect(fill = "grey20")) + 
+  labs(title = "Three-cornered fights are usually won by PH or BN", 
+       subtitle = "Only electoral races post UMNO collapse (2018); only counts candidates which won more than 5% of the vote share", 
+       y = "Number of electoral races", 
+       n = "Number of candidates", 
+       fill = "Winner")
+  
+  
+
 ```
 
+<br>
+
+The primary beneficiaries of three-cornered fights after the collapse of UMNO have been Pakatan Harapan and BN. 
+
+<br>
+
+Only a minority of PH/PR seats were won with less than 50% of the votes 
 
 ```{r}
-ballots |>  
-  filter(str_detect(election, "GE")) |>
+ballots |> 
+  filter(result %in% c("won", "won_uncontested") & 
+           coalition %in% c("PH", "PR")) |> 
   mutate(year = year(date)) |> 
-  group_by(election) |> 
-  mutate(year = min(year)) |>
-  mutate(coalition = fct_lump(coalition, n = 7, w = votes), 
-         coalition = forcats::fct_drop(coalition)) |>
-  group_by(year, coalition) |> 
-  summarise(votes = sum(votes), .groups = "drop") |>
-  group_by(year) |> 
-  mutate(total_votes = sum(votes)) |> 
-  ungroup() |> 
-  mutate(votes_pc = votes / total_votes) %>% 
-  ggplot(aes(x = year, y = votes_pc, group = coalition)) + 
-  geom_line(aes(colour = coalition), 
-            linewidth = 1.05, 
-            alpha = .8) + 
-  scale_colour_viridis_d(option = "turbo", drop = TRUE, limits = force) +
-  scale_x_continuous(breaks = seq(1955, 2026, 5)) +
-  guides(colour = guide_legend(override.aes = list(linewidth = 2, 
-                                                   alpha = 1))) + 
-  scale_y_continuous(labels = percent, breaks = seq(0, .9, .1)) +
-  labs(x = "", 
-       y = "Share of popular vote", 
-       title = "UMNO still has, very marginally, the largest share of votes",
-       subtitle = "But it has never won more than 40% of votes since the formation of the Federation", 
-       colour = "") + 
-  theme(axis.text.x = element_text(size = 7))
+  ggplot(aes(x = votes_perc / 100, group = year, fill = -year)) + 
+  geom_histogram() + 
+  scale_x_continuous(labels = percent) + 
+  facet_wrap(~ federal)
+  
 ```
+<br>
+
+The margin by which PH/PR has won has been trending downwards
+
+```{r}
+ballots |> 
+  filter(coalition %in% c("PH", "PR")) |> 
+  mutate(year = year(date)) |> 
+  ggplot(aes(x = str_sub(year, 3L), y = votes_perc / 100)) + 
+  geom_jitter(aes(colour = result)) + 
+  scale_colour_viridis_d(option = "plasma") + 
+  scale_y_continuous(labels = percent, 
+                     breaks = seq(0, 1, .1)) +
+  facet_wrap(~ federal) + 
+  theme(strip.background = element_rect(fill = "grey20")) + 
+  labs(x = "Year", 
+       y = "PH/PR vote share")
+
+```
+
+<br>
+
+The footprint of PH is narrowing. 
+
+Three-cornered fights are more commonplace 
+
+PH/PR almost never wins when the percentage of votes it garners is less than 40%. 
+
+Anwar is compromised by his sodomy conviction, so PH is not able to effectively enter into the Islamisation race. Also, is there a moderate Islamic position that the DAP can accept? 
+
+
 
 ```{r}
 census_fed |> 
