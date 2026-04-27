@@ -358,3 +358,271 @@ ballots |>
   theme(axis.text.x = element_text(size = 7))
 
 [Marzuki Mohamad and Ibrahim Suffian](https://www.iseas.edu.sg/articles-commentaries/iseas-perspective/2023-20-malaysias-15th-general-election-ethnicity-remains-the-key-factor-in-voter-preferences-by-marzuki-mohamad-and-ibrahim-suffian/) argue that ethnicity remains the most important political and social cleavage, citing a stark dichotomy in how the Perikatan Nasional administration was perceived by Malays and non-Malays.  
+
+census_fed |> 
+  left_join(
+    multiracial |> 
+      filter(election %in% c("GE-12", "GE-13", "GE-14", "GE-15")) |> 
+      mutate(type = case_when(
+        multiracial == 1 ~ "Multiethnic", 
+        malay_only == 1 ~ "Malay only", 
+        chinese_only == 1 ~ "Chinese only", 
+        indian_only == 1 ~ "Indian only", 
+        sabah_only == 1 ~ "Bumi Sabah only", 
+        sarawak_only == 1 ~ "Bumi Sarawak only"
+      )) |> 
+      select(seat, type, election), 
+    by = c("parlimen" = "seat")
+  ) |> 
+  mutate(population_bumi = population_total * pc_bumi) |> 
+  ggplot(aes(x = population_total, 
+             y = pc_bumi)) + 
+  geom_point(aes(colour = type, 
+                 size = population_bumi)) +
+  scale_x_log10(labels = comma) + 
+  scale_y_continuous(labels = percent) +
+  scale_colour_viridis_d() +
+  scale_size_continuous(labels = comma) +
+  labs(x = "Population of constituency", 
+       y = "% of population who are Bumiputera", 
+       colour = "Ethnicity of\ncandidates", 
+       size = "2020 Bumiputera\npopulation") +
+  guides(colour = guide_legend(
+    override.aes = list(size = 2)
+  )) + 
+  facet_wrap(~ election)
+
+ballots |> 
+  filter(state %in% c("Sabah", "Sarawak")) |> 
+  mutate(ethnicity = ifelse(
+    ethnicity == "Orang Asli", "Other", ethnicity
+  )) |> 
+  mutate(year = year(date), 
+         decade = year - year %% 10, 
+         count = 1) |> 
+  group_by(state, decade, ethnicity, federal) |> 
+  summarise(count = sum(count)) |> 
+  group_by(decade, federal) |> 
+  mutate(total = sum(count)) |> 
+  ungroup() |> 
+  mutate(pc = count / total) |> 
+  ggplot(aes(x = decade, 
+             y = pc, 
+             fill = ethnicity)) + 
+  geom_col(position = "stack") + 
+  facet_wrap(~ federal + state) + 
+  scale_y_continuous(labels = percent) + 
+  scale_x_continuous(breaks = seq(1950, 2020, 10)) +
+  scale_fill_viridis_d() + 
+  theme(axis.text.x = element_text(angle = 30, vjust = .5), 
+        strip.background = element_rect(fill = "black")) + 
+  labs(title = "Ethnicity of election candidates", 
+       y = "% of candidates", 
+       x = "") 
+
+ballots |> 
+  filter(date > "2006-01-01") |> 
+  mutate(count = 1) |> 
+  filter(rank <= 3) |> 
+  mutate(party = fct_lump(party, n = 12)) |> 
+  group_by(party, sex) |> 
+  summarise(count = sum(count), .groups = "drop") |> 
+  group_by(party) |> 
+  mutate(total_candidates = sum(count)) |> 
+  ungroup() |> 
+  mutate(pc = count / total_candidates, 
+         sex = ifelse(sex == "F", "Female", "Male")) |> 
+  ggplot(aes(x = pc, y = fct_rev(party))) + 
+  geom_col(aes(fill = sex)) + 
+  geom_vline(xintercept = .25, linetype = "longdash", colour = "white", alpha = .4) +
+  geom_vline(xintercept = .5, linetype = "longdash", colour = "white", alpha = .4) +
+  geom_vline(xintercept = .75, linetype = "longdash", colour = "white", alpha = .4) +
+  scale_fill_viridis_d() + 
+  scale_x_continuous(label = percent) + 
+  labs(x = "% of candidates", 
+       y = "Party", 
+       title = "Only 10.5% of candidates since 2006 have been women", 
+       subtitle = "Only showing politicians who ran since the redelineation in 2006", 
+       fill = "Sex")
+
+census_fed |> 
+  left_join(
+    multiracial |> 
+      filter(election == "GE-15") |> 
+      mutate(type = case_when(
+        multiracial == 1 ~ "Multiethnic", 
+        malay_only == 1 ~ "Malay only", 
+        chinese_only == 1 ~ "Chinese only", 
+        indian_only == 1 ~ "Indian only", 
+        sabah_only == 1 ~ "Bumi Sabah only", 
+        sarawak_only == 1 ~ "Bumi Sarawak only"
+      )) |> 
+      select(seat, type), 
+    by = c("parlimen" = "seat")
+  ) |> 
+  mutate(population_bumi = population_total * pc_bumi) |> 
+  ggplot(aes(x = population_density, 
+             y = pc_bumi)) + 
+  geom_point(aes(colour = type, 
+                 size = population_total)) +
+  scale_x_log10(labels = comma) +
+  scale_y_continuous(labels = percent) +
+  scale_colour_viridis_d() +
+  scale_size_continuous(labels = comma) +
+  labs(x = "Population density", 
+       y = "% of population who are Bumiputera", 
+       colour = "Ethnicity of\ncandidates", 
+       size = "Total\npopulation") +
+  guides(colour = guide_legend(
+    override.aes = list(size = 3)))
+    
+multiracial |> 
+  filter(multiracial == 1) |> 
+  left_join(
+    ballots |> 
+      filter(result %in% c("won", "won_uncontested")) |> 
+      select(seat, date, winner_ethnicity = ethnicity), 
+    by = c("seat", "date")
+  ) |> 
+  mutate(year = year(date), 
+         decade = year - year %% 10) |> 
+  select(-c(malay_only:other_only)) |> 
+  pivot_longer(
+    cols = malay_chinese:sabah_sarawak_other, 
+    names_to = "combination", 
+    values_to = "value"
+  ) |> 
+  filter(value > 0) |> 
+  mutate(
+    combination = ifelse(
+      combination %in% c(
+        "malay_chinese_other", 
+        "malay_sarawak", 
+        "indian_other", 
+        "sabah_other", 
+        "sarawak_other", 
+        "malay_chinese_other", 
+        "malay_chinese_sabah", 
+        "malay_chinese_sarawak"
+      ), 
+      "other_combination", 
+      combination
+    )) |> 
+  group_by(combination) |> 
+  mutate(sort = sum(value)) |> 
+  ungroup() |> 
+  mutate(combination = str_replace_all(combination, "_", "/"), 
+         combination = str_to_title(combination)) |> 
+  ggplot(aes(
+    x = value, 
+    y = fct_reorder(combination, sort), 
+    fill = winner_ethnicity
+  )) + 
+  geom_col() +
+  scale_fill_viridis_d() +
+  labs(title = "Multiethnic electoral races and their results",
+       x = "Number of electoral races", 
+       y = "", 
+       fill = "Winner ethnicity") +
+  facet_wrap(~ federal, scales = "free_x") + 
+  theme(strip.background = element_rect(fill = "grey20"))
+
+multiracial |> 
+  filter(multiracial == 1) |> 
+  left_join(
+    ballots |> 
+      filter(result %in% c("won", "won_uncontested")) |> 
+      select(seat, date, winner_ethnicity = ethnicity), 
+    by = c("seat", "date")
+  ) |> 
+  mutate(year = year(date), 
+         decade = year - year %% 10) |> 
+  select(-c(malay_only:other_only)) |> 
+  pivot_longer(
+    cols = malay_chinese:sabah_sarawak_other, 
+    names_to = "combination", 
+    values_to = "value"
+  ) |> 
+  mutate(winner_ethnicity = ifelse(
+    winner_ethnicity == "Orang Asli", "Other", winner_ethnicity
+  )) |> 
+  ggplot(aes(x = decade, 
+             y = value, 
+             fill = winner_ethnicity)) + 
+  geom_col() + 
+  scale_fill_viridis_d() + 
+  scale_x_continuous(breaks = seq(1950, 2020, 10)) + 
+  facet_wrap(~ federal, scales = "free_y") + 
+  labs(
+    title = "Results of multiethnic electoral races"
+  )
+
+multiracial |>
+  mutate(year = year(date), decade = year - year %% 10) |>
+  group_by(decade, federal) |>
+  summarise(
+    n = n(),
+    multiethnic = sum(multiracial),
+    .groups = "drop"
+  )  |>
+  mutate(
+    single_race = n - multiethnic,
+    multiethnic_pc = multiethnic / n,
+    single_race_pc = single_race / n
+  ) |>
+  select(decade, federal, n, multiethnic_pc, single_race_pc) |>
+  pivot_longer(cols = multiethnic_pc:single_race_pc) |>
+  ggplot(aes(x = decade, y = value, fill = name)) +
+  geom_col() +
+  scale_x_continuous(breaks = seq(1950, 2020, 10)) +
+  facet_wrap(~ federal, scales = "free_y") +
+  scale_fill_viridis_d(option = "cividis",
+                           begin = .2,
+                           end = .9)
+  
+ballots |> 
+  filter(result %in% c("won", "won_uncontested") & 
+           coalition %in% c("PH", "PR")) |> 
+  mutate(year = year(date)) |> 
+  ggplot(aes(x = votes_perc / 100, group = year, fill = -year)) + 
+  geom_histogram() + 
+  scale_x_continuous(labels = percent) + 
+  facet_wrap(~ federal)
+
+ballots |> 
+  mutate(seat_date = paste0(seat, " ", date),
+         votes_perc = ifelse(is.na(votes_perc) & result == "won_uncontested", 100, votes_perc)) |> 
+  group_by(seat_date) |> 
+  mutate(ph_pr = ifelse(coalition %in% c("PH", "PR"), 1, 0),
+         include_sum = sum(ph_pr), 
+         result = case_when(
+           result == "won_uncontested" ~ "won", 
+           result == "lost_deposit" ~ "lost", 
+           TRUE ~ result
+         )) |> 
+  ungroup() |> 
+  filter(include_sum > 0) |> 
+  mutate(coalition = ifelse(
+    coalition %in% c("USA", "ALONE", "GTA", "WARISAN-PLUS", "GASAK", "GRS"), "Other", coalition)) |> 
+  filter(coalition != "Other") |> 
+  ggplot(aes(x = reorder_within(seat_date, votes_perc, coalition), y = votes_perc)) + 
+  geom_col(aes(fill = result), width = 1) + 
+  geom_hline(yintercept = 50, linetype = 2, colour = "cornflowerblue", alpha = .5) +
+  facet_wrap(~ coalition, scales = "free_x") + 
+  scale_x_reordered() + 
+  scale_fill_viridis_d(option = "turbo") + 
+  theme(axis.text.x = element_blank(), 
+        strip.background = element_rect(fill = "grey20")) + 
+  labs(title = "Electoral result by vote share and coalition", 
+       y = "Vote share", 
+       x = "Electoral race")
+
+
+
+
+Be that as it may, a closer look at BN and PN leaders’ approval rating among Malay voters reveals a slightly different scenario. PN Chairman and former Prime Minister, Muhyiddin Yassin, received a higher approval rating (67%) compared to BN Chairman, Zahid Hamidi (19%).
+
+PKR has backtracked on its commitment to one-person-one-vote in its [internal elections](https://www.iseas.edu.sg/articles-commentaries/iseas-perspective/2024-21-a-deep-dive-into-malaysias-peoples-justice-party-pkr-by-james-chai/): executive committees at the national and division levels are now chosen by delegates. 
+
+Efforts have been made in recent years to ease this burden. First, PKR adopted a hybrid selection system for the first time in 2022,[69] where the executive committees at the national and division levels are chosen by delegates (see Table 6 above). This halves the maximum votes available to the members, which had proven to be too many for members in the first place (‘over-democracy’).[70] Two, introducing online voting (via the ‘ADIL’ application) that will minimise logistics and potential cheating. In 2022, more
+        

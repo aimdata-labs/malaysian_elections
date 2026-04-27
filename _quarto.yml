@@ -3,6 +3,7 @@ project:
   output-dir: docs
   render: 
     - index.qmd
+    - part_two.qmd
 
 website:
   navbar:
@@ -12,6 +13,9 @@ website:
     left:
         - href: index.qmd
           text: Part One
+        - href: part_two.qmd
+          text: Part Two
+        
     right:
         - icon: github
           href: "https://github.com/aimdata-labs"
