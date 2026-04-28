@@ -625,4 +625,32 @@ Be that as it may, a closer look at BN and PN leaders’ approval rating among M
 PKR has backtracked on its commitment to one-person-one-vote in its [internal elections](https://www.iseas.edu.sg/articles-commentaries/iseas-perspective/2024-21-a-deep-dive-into-malaysias-peoples-justice-party-pkr-by-james-chai/): executive committees at the national and division levels are now chosen by delegates. 
 
 Efforts have been made in recent years to ease this burden. First, PKR adopted a hybrid selection system for the first time in 2022,[69] where the executive committees at the national and division levels are chosen by delegates (see Table 6 above). This halves the maximum votes available to the members, which had proven to be too many for members in the first place (‘over-democracy’).[70] Two, introducing online voting (via the ‘ADIL’ application) that will minimise logistics and potential cheating. In 2022, more
+
+ballots |> 
+  filter(date > "2006-01-01") |> 
+  filter(result %in% c("won", "won_uncontested")) |> 
+  mutate(count = 1) |>
+  mutate(ethnicity = ifelse(ethnicity == "Orang Asli", "Other", ethnicity)) |> 
+  mutate(party = fct_lump(party, n = 12)) |> 
+  group_by(party, ethnicity) |> 
+  summarise(count = sum(count), .groups = "drop") |> 
+  group_by(party) |> 
+  mutate(total_candidates = sum(count)) |> 
+  ungroup() |> 
+  mutate(pc = count / total_candidates) |> 
+  ggplot(aes(x = pc, y = fct_rev(fct_relevel(party, 
+                                             c("UMNO", "DAP", "PAS", "PKR", "PBB", 
+                                               "Other", "BERSATU", "WARISAN", "MCA", 
+                                               "AMANAH", "PRS", "PBS", "SUPP"))))) + 
+  geom_col(aes(fill = ethnicity)) + 
+  geom_vline(xintercept = .25, linetype = "longdash", colour = "white", alpha = .4) +
+  geom_vline(xintercept = .5, linetype = "longdash", colour = "white", alpha = .4) +
+  geom_vline(xintercept = .75, linetype = "longdash", colour = "white", alpha = .4) +
+  scale_fill_viridis_d() + 
+  scale_x_continuous(label = percent) + 
+  labs(x = "% of MPs", 
+       y = "Party", 
+       title = "Ethnicity of winning candidates by party", 
+       subtitle = "Since 2006; parties sorted by number of MPs", 
+       fill = "Candidate\nethnicity")
         

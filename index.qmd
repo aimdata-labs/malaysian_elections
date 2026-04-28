@@ -276,7 +276,7 @@ tribble(
 
 # Introduction
 
-Malaysia has a multi-party, first-past-the-post parliamentary system. It is a constitutional monarchy with a "federal structure with power [nominally](https://sci-hub.box/10.2139/ssrn.3048551) divided between federal and state levels, though in practice, it is highly centralised". 
+Malaysia has a multi-party, first-past-the-post parliamentary system. It is a constitutional monarchy with a "federal structure with power [nominally](https://www.researchgate.net/publication/320237182_Malaysia's_Electoral_Process_The_Methods_and_Costs_of_Perpetuating_UMNO_Rule) divided between federal and state levels, though in practice, it is highly centralised". 
 
 ```{r census-summary, warning=FALSE, message=FALSE}
 census_summary <- read_csv("./data/population_malaysia.csv") |> 
@@ -289,9 +289,9 @@ census_summary <- read_csv("./data/population_malaysia.csv") |>
 
 In 2025, [Malaysia](https://open.dosm.gov.my/) had a multi-ethnic population of 34.2 million people, with `r filter(census_summary, ethnicity == "bumi_malay") |> pull(pc)`% of the population being Malay, `r filter(census_summary, ethnicity == "chinese") |> pull(pc)`% being Chinese, `r filter(census_summary, ethnicity == "indian") |> pull(pc)`% being Indian, `r filter(census_summary, ethnicity == "bumi_other") |> pull(pc)`% being non-Malay indigenous bumiputera groups, `r filter(census_summary, ethnicity == "other_citizen") |> pull(pc)`% being other races and `r filter(census_summary, ethnicity == "other_noncitizen") |> pull(pc)`% being non-citizens. 
 
-Prior to 2018, Malaysia had been considered to have one of the [least-honest and most-manipulated electoral systems](https://sci-hub.box/10.2139/ssrn.3048551) in the world, ranking 142^nd^ out of 158 countries assessed by the Electoral Integrity Project and falling into the "Very Low/Failed" category alongside countries like Afghanistan, Zimbabwe and Vietnam. A more [recent report in 2025](https://static1.squarespace.com/static/58533f31bebafbe99c85dc9b/t/6866ad9714bd8c1f780fc489/1751559585725/Year+in+Elections+PEI+11+Report+.pdf) believes Malaysia to have one of the most-improved electoral systems, moving up into a more middling category, ranking between Myanmar and Iraq. 
+Prior to 2018, Malaysia had been considered to have one of the [least-honest and most-manipulated electoral systems](https://www.researchgate.net/publication/320237182_Malaysia's_Electoral_Process_The_Methods_and_Costs_of_Perpetuating_UMNO_Rule) in the world, ranking 142^nd^ out of 158 countries assessed by the Electoral Integrity Project and falling into the "Very Low/Failed" category alongside countries like Afghanistan, Zimbabwe and Vietnam. A more [recent report in 2025](https://static1.squarespace.com/static/58533f31bebafbe99c85dc9b/t/6866ad9714bd8c1f780fc489/1751559585725/Year+in+Elections+PEI+11+Report+.pdf) believes Malaysia to have one of the most-improved electoral systems, moving up into a more middling category, ranking between Myanmar and Iraq. 
 
-However, the major issues facing Malaysia's electoral system remain [shockingly numerous](https://sci-hub.box/10.2139/ssrn.3048551): malapportionment, lack of judicial independence, partisanship of the Electoral Commission and other institutions, racialisation of politics and Malay supremacism, restrictions on political speech and civil society, discrepancies in vote tallying, vote buying and clientalisation of key voting blocs, post-election manipulations, capture of institutional media by political parties and mass corruption. 
+However, the major issues facing Malaysia's electoral system remain [shockingly numerous](https://www.researchgate.net/publication/320237182_Malaysia's_Electoral_Process_The_Methods_and_Costs_of_Perpetuating_UMNO_Rule): malapportionment, lack of judicial independence, partisanship of the Electoral Commission and other institutions, racialisation of politics and Malay supremacism, restrictions on political speech and civil society, discrepancies in vote tallying, vote buying and clientalisation of key voting blocs, post-election manipulations, capture of institutional media by political parties and mass corruption. 
 
 We will be looking through election ballot data compiled by [Thevesh](https://github.com/Thevesh/paper-meco-results/tree/main) to explore some of these issues and quantify them. 
 
@@ -311,7 +311,7 @@ seats_summary <- ballots |>
 
 Since 1955, There have been a cumulative `r seats_summary |> filter(federal == "Federal") |> pull(seats) |> format(big.mark = ",")` federal-level and `r seats_summary |> filter(federal == "State") |> pull(seats) |> format(big.mark = ",")` state-level elections involving `r ballots |> summarise(value = n_distinct(candidate_uid)) |> pull(value) |> format(big.mark = ",")` different candidates. 
 
-Legislative candidates are overwhelmingly male. Analyst [Yong Pey Jung](https://www.wfd.org/commentary/strategies-inclusive-politics-and-boosting-womens-representation-malaysia) noted that it took 27 years (7 elections) for women MPs to rise above 5% of the total, and 44 years (11 elections) to surpass 10%. After 63 years of democracy, female MPs still form less than 15% of parliament: 
+Legislative candidates are overwhelmingly male. Analyst [Yeong Pey Jung](https://www.wfd.org/commentary/strategies-inclusive-politics-and-boosting-womens-representation-malaysia) noted that it took 27 years (7 elections) for women MPs to rise above 5% of the total, and 44 years (11 elections) to surpass 10%. After 63 years of democracy, female MPs still form less than 15% of parliament: 
 
 <br>
 
@@ -712,7 +712,7 @@ census_fed |>
 
 <br>
 
-[ISEAS](https://www.iseas.edu.sg/wp-content/uploads/2024/03/ISEAS_Perspective_2024_30.pdf) also finds no evidence that malapportionment is an ethnic issue. We see from their analysis that redelineation would favour PAS as much as it would the DAP (who, surprisingly, have the same average district size). 
+[Ostwald](https://www.iseas.edu.sg/wp-content/uploads/2024/03/ISEAS_Perspective_2024_30.pdf) also finds no evidence that malapportionment is an ethnic issue. We see from their analysis that redelineation would favour PAS as much as it would the DAP (who, surprisingly, have the same average district size). 
 
 The current malapportionment favours GPS, UMNO and GRS the most. 
 
@@ -1091,7 +1091,7 @@ census_dun |>
 
 <br>
 
-[ISEAS's analysis](https://www.iseas.edu.sg/wp-content/uploads/2024/03/ISEAS_Perspective_2024_30.pdf) holds true at the state level as well, with BN benefiting substantially from malapportionment and having an outsized number MPs compared to the populations of the constituencies it has won. BN is an almost entirely rural coalition, only winning urban seats in its stronghold of Johor. Conversely, Pakatan Harapan is a largely urban coalition. 
+[Ostwald's analysis](https://www.iseas.edu.sg/wp-content/uploads/2024/03/ISEAS_Perspective_2024_30.pdf) holds true at the state level as well, with BN benefiting substantially from malapportionment and having an outsized number MPs compared to the populations of the constituencies it has won. BN is an almost entirely rural coalition, only winning urban seats in its stronghold of Johor. Conversely, Pakatan Harapan is a largely urban coalition. 
 
 
 
@@ -1103,4 +1103,46 @@ The data for this report comes primarily from  [Thevesh](https://github.com/Thev
 
 Additional data, including the digitised census datasets, come from [JJean95](https://www.kaggle.com/datasets/jjean95/malaysia-general-election-datasets?select=census_dun.csv).
 
-In this analysis, we have used constituency populations as opposed to the number of votes because MPs represent all peoples within their constituencies, not just electors. 
+In this analysis, we have used constituency populations as opposed to the number of voters because MPs represent all peoples within their constituencies, not just electors. 
+
+<br><br><br>
+
+# References
+
+::: {#refs}
+
+Department of Statistics Malaysia (2020). *MyCensus 2020*. https://open.dosm.gov.my
+
+The Future Research (2024, March 15). The Concept of "Rural Weightage" in Electoral Boundaries and the Political Power of Malay Muslims. *The Future Research*. Retrieved from https://futureresearch.my/2024/01/29/the-concept-of-rural-weightage-in-electoral-boundaries-and-the-political-power-of-malay-muslims/
+
+Garnett H. A., James T. S. & Sofia Caal-Lam (2025). Electoral Integrity Global Report 2025. *Electoral Integrity Project*. Retrieved from https://static1.squarespace.com/static/58533f31bebafbe99c85dc9b/t/6866ad9714bd8c1f780fc489/1751559585725/Year+in+Elections+PEI+11+Report+.pdf
+
+Gomez T. (2019, May 8). Patronage-based Business as Usual in 'New Malaysia'. *East Asia Forum*. https://eastasiaforum.org/2019/05/08/patronage-based-business-as-usual-in-new-malaysia/
+
+Helmi S. (2013, April 5). Japan's Electoral Unfairness Goes Deeper than Malapportionment. *Fair Vote*. Retrieved from https://fairvote.org/japan-s-electoral-unfairness-goes-deeper-than-malapportionment/
+
+JJean95 (2022). *Malaysia General Election Results (GE12-GE15)*. https://www.kaggle.com/datasets/jjean95/malaysia-general-election-datasets?select=census_dun.csv
+
+Lasimbang H. B., Wen T. T. & Wah Y. L. (2016). Migrant Workers in Sabah, East Malaysia: The Importance of Legislation and Policy to Uphold Equity on Sexual and Reproductive Health and Rights. *Best Practice & Research Clinical Obstetrics & Gynaecology*, 32(112-113). https://doi.org/10.1016/j.bpobgyn.2015.08.015
+
+Liew C. T. (2020). 1990: The Election Year that Changed Malaysia. *Liew Chin Tong*. Retrieved from https://liewchintong.com/2020/10/21/1990-the-election-year-that-changed-malaysia/
+
+Muhairah R. R. (2023). Poverty and Inequality in Malaysia's Evolving Economy. *Asia-Europe Institute*. Retrieved from https://aei.um.edu.my/docs/2025/dili/RR%20Muhairah%20-%20Poverty%20and%20Inequality%20in%20Malaysia%20-%20draft%201.pdf
+
+Ooi K. H. & Chalieobun C. (2025). Strategies for Inclusive Politics and Boosting Women's Representation in Malaysia. *Westminster Foundation for Democracy*. Retrieved from https://www.wfd.org/commentary/strategies-inclusive-politics-and-boosting-womens-representation-malaysia
+
+Ostwald, K (2017). Malaysia's Electoral Process: The Methods and Costs of Perpetuating UMNO Rule. *Trends in Southeast Asia, ISEAS -- Yusof Ishak Institute*. Retrieved from https://www.researchgate.net/publication/320237182_Malaysia's_Electoral_Process_The_Methods_and_Costs_of_Perpetuating_UMNO_Rule. 
+
+Ostwald, K. (2024). The Power of a Vote in Malaysia: Malapportionment Under UND118, AVR, and MA63. *ISEAS -- Yusof Ishak Institute Perspective*, 2024(30). Retrieved from https://www.iseas.edu.sg/wp-content/uploads/2024/03/ISEAS_Perspective_2024_30.pdf
+
+Puyok A. (2024). Autonomy in Sabah and Sarawak: Different Paths and Diverging Outcomes. *ISEAS -- Yusof Ishak Institute Trends in Southeast Asia*, 28. Retrieved from https://www.iseas.edu.sg/wp-content/uploads/2024/11/TRS28_24.pdf
+
+Syafiqah S. (2026, January 30). IDEAS Flags Weak Transparency in Malaysia's Constituency Development Fund Spending. *The EDGE Malaysia*. https://theedgemalaysia.com/node/791245
+
+Thevesh T. (2026). *Malaysian Election Corpus: Federal and State-Level Election Results since 1955*. https://github.com/Thevesh/paper-meco-results/tree/main
+
+UK Parliament (2024). Parliamentary Constituencies. Retrieved from https://www.parliament.uk/about/how/elections-and-voting/constituencies/
+
+Wong C. H., Yeong P. J. & Ooi K. H. (2016). Malapportionment of Constituencies: Analysis of the 2016 Redelineation Proposal  (First Display) for the Peninsula and Sabah and the 2015 Redelineation Exercise for Sarawak. *Penang Institute*. Retrieved from https://penanginstitute.org/wp-content/uploads/jml/files/malapportionment/Malapportionment-Report-2.0-20161022.pdf
+
+:::
