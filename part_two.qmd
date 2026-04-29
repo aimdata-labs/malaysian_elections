@@ -206,6 +206,25 @@ multiracial_races <- ballots |>
     multiracial == 0, paste0(candidate_ethnicity, "_only"), "multiethnic"
   )) |> 
   distinct(state, seat, date, federal, election, multiracial, combination)
+
+census_alt <- read_csv("./data/MALAYSIA_CENSUS_DEMOGRAPHIC_2020_2.csv") |> 
+  janitor::clean_names() |> 
+  mutate(state = str_replace_all(state, "W.P. ", ""), 
+         district = str_replace_all(district, "W.P. ", ""), 
+         state = ifelse(state == "KualaLumpur", "Kuala Lumpur", state), 
+         district = case_when(
+           district == "Tasik Gelugor" ~ "Tasek Gelugor", 
+           district == "Kulim - Bandar Bahang" ~ "Kulim-Bandar Baharu", 
+           district == "PetraJaya" ~ "Petra Jaya", 
+           district == "KotaRaja" ~ "Kota Raja",
+           TRUE ~ district)
+         ) |> 
+  left_join(
+    census_fed |> 
+      mutate(district = str_sub(parlimen, start = 7L)) |> 
+      distinct(state, district, parlimen), 
+    by = c("state", "district")
+  ) 
 ```
 
 **Acronyms**
@@ -248,6 +267,9 @@ According to [Pusat KOMAS](https://komas.org/download/Malaysia-Racism-Report_A-D
 The next general election is likely to witness another surge in racial politics, particularly with PAS and Bersatu continuing to consolidate their Malay-Muslim voter bases. 
 
 <br><br><br>
+
+
+
 
 # Multiethnic electoral races
 
@@ -854,6 +876,10 @@ Given this strong racial component to elections, we will next use demographic da
 
 ```{r training-and-testing}
 
+# Training dataset is kind of a frankenstein dataset
+# Mostly from State Election 15, but also 14 for Sarawak
+# And GE-14 for the federal territories
+
 training <- census_fed |> 
   mutate(pc_bumi_peninsula = ifelse(
     east_malaysia == 0, pc_bumi, 0), 
@@ -862,11 +888,25 @@ training <- census_fed |>
     )) |> 
   select(
     parlimen, population_density, pc_bumi_peninsula, pc_bumi_east_malaysia, 
-    pc_chinese, pc_indian, gini, income_avg
+    pc_chinese, pc_indian, gini, income_avg, poverty_incidence
+  ) |> 
+  left_join(
+    census_alt |>
+      mutate(non_citizen_pc = non_citizens / total_population) |>
+      select(
+        parlimen,
+        labour_force_participation_rate,
+        sex_ratio,
+        total_dependency_ratio,
+        average_household_size
+      ),
+    by = "parlimen"
   ) |> 
   left_join(
     ballots |>
       filter(election == "SE-15") |>
+      # Using SE-14 for Sarawak for the testing data 
+      # It definitely falls into the correct date range though 
       rbind(ballots |>
               filter(date == "2021-12-18" & state == "Sarawak")) |>
       left_join(census_dun |>
@@ -874,23 +914,45 @@ training <- census_fed |>
       group_by(parlimen) |>
       summarise(
         ph_votes = sum(votes[coalition == "PH"], na.rm = TRUE),
+        bn_votes = sum(votes[coalition == "BN"], na.rm = TRUE), 
+        pn_votes = sum(votes[coalition == "PN"], na.rm = TRUE),
         total_votes = sum(votes, na.rm = TRUE),
         .groups = "drop"
       ) |>
+      # Using GE-14 as the testing data for the federal territories
+      # This data does fall outside of a reasonable date range, 
+      # But I am hoping that federal territories voting results
+      # are fairly static
+      rbind(
+        ballots |>
+          filter(election == "GE-14" & str_detect(state, "Kuala Lumpur|Putrajaya|Labuan")) |>
+          group_by(parlimen = seat) |>
+          summarise(
+            ph_votes = sum(votes[coalition %in% c("PH", "PR")], na.rm = TRUE),
+            bn_votes = sum(votes[coalition == "BN"], na.rm = TRUE),
+            pn_votes = sum(votes[coalition %in% c("PN", "GS")], na.rm = TRUE),
+            total_votes = sum(votes, na.rm = TRUE),
+            .groups = "drop"
+          )
+      ) |> 
       mutate(pc_ph_votes = ph_votes / total_votes), 
     by = "parlimen"
   ) |> 
   filter(!is.na(pc_ph_votes)) |>
-  mutate(population_density = log(population_density)) |> 
+  mutate(population_density = log(population_density), 
+         income_avg = log(income_avg)) |> 
   mutate_at(
     c("population_density", "pc_bumi_peninsula", "pc_bumi_east_malaysia", 
-      "pc_chinese", "pc_indian", "gini", "income_avg"), 
+      "pc_chinese", "pc_indian", "gini", "income_avg", 
+      "labour_force_participation_rate", "poverty_incidence", 
+      "sex_ratio", "total_dependency_ratio", "average_household_size"), 
     function(x){
       (x - mean(x) / sd(x))
     }
   ) |> 
   na.omit()
 
+# Testing data are the results from GE-15
 testing <- census_fed |> 
   mutate(pc_bumi_peninsula = ifelse(
     east_malaysia == 0, pc_bumi, 0), 
@@ -899,22 +961,39 @@ testing <- census_fed |>
     )) |> 
   select(
     parlimen, population_density, pc_bumi_peninsula, pc_bumi_east_malaysia, 
-    pc_chinese, pc_indian, gini, income_avg
+    pc_chinese, pc_indian, gini, income_avg, poverty_incidence
+  ) |> 
+  left_join(
+    census_alt |>
+      mutate(non_citizen_pc = non_citizens / total_population) |>
+      select(
+        parlimen,
+        labour_force_participation_rate,
+        sex_ratio,
+        total_dependency_ratio,
+        average_household_size
+      ),
+    by = "parlimen"
   ) |> 
   left_join(
     ballots |> 
       filter(election == "GE-15") |> 
       group_by(seat) |> 
       summarise(ph_votes = sum(votes[coalition == "PH"], na.rm = TRUE), 
+                bn_votes = sum(votes[coalition == "BN"], na.rm = TRUE), 
+                pn_votes = sum(votes[coalition == "PN"], na.rm = TRUE),
                 total_votes = sum(votes, na.rm = TRUE), 
                 .groups = "drop") |>
       mutate(pc_ph_votes = ph_votes / total_votes), 
     by = c("parlimen" = "seat")
   ) |> 
-  mutate(population_density = log(population_density)) |> 
+  mutate(population_density = log(population_density), 
+         income_avg = log(income_avg)) |> 
   mutate_at(
     c("population_density", "pc_bumi_peninsula", "pc_bumi_east_malaysia", 
-      "pc_chinese", "pc_indian", "gini", "income_avg"), 
+      "pc_chinese", "pc_indian", "gini", "income_avg", 
+      "labour_force_participation_rate", "poverty_incidence", 
+      "sex_ratio", "total_dependency_ratio", "average_household_size"), 
     function(x){
       (x - mean(x) / sd(x))
     }
@@ -923,13 +1002,15 @@ testing <- census_fed |>
 ```
 
 
-```{r stepwise-model}
+```{r stepwise-model-ph}
 #| echo: false
 #| output: false
 
 stepwise_model <- step(lm(
   pc_ph_votes ~ population_density + pc_bumi_peninsula + pc_bumi_east_malaysia + 
-  pc_chinese + pc_indian + gini + income_avg, 
+  pc_chinese + pc_indian + gini + income_avg + poverty_incidence + 
+    labour_force_participation_rate + sex_ratio + total_dependency_ratio + 
+    average_household_size, 
   data = training, 
   direction = "backward"
 ))
@@ -941,10 +1022,16 @@ stepwise_model <- step(lm(
 ```
 
 
-```{r glmnet-model}
+
+```{r glmnet-model-ph}
+
+set.seed(3)
+
 glmnet_model <- train(
   pc_ph_votes ~ population_density + pc_bumi_peninsula + pc_bumi_east_malaysia + 
-  pc_chinese + pc_indian + gini + income_avg, 
+  pc_chinese + pc_indian + gini + income_avg + poverty_incidence + 
+    labour_force_participation_rate + sex_ratio + total_dependency_ratio + 
+    average_household_size, 
   data = training, 
   method = "glmnet", 
   metric = "RMSE", 
@@ -971,23 +1058,38 @@ testing <- testing |>
 
 ```
 
-In this section, we will try and predict Pakatan Harapan's performance (in this case, the percentage of votes we anticipate them to receive) in the upcoming general election. We are looking at PH's performance because it is the easiest to predict from past election performance and census data: BN's ongoing collapse adds elements that are difficult to account for with demographic data, as does the overlap between BN and PN voters.
+```{r RMSE, eval=FALSE}
+
+sqrt(mean(testing$pc_ph_votes - testing$step_pred)^2)
+
+sqrt(mean(testing$pc_ph_votes - testing$glmnet_pred)^2)
+
+stepwise_model |> summary()
+
+rss_step <- sum((testing$pc_ph_votes - testing$step_pred)^2)
+tss <- sum((testing$pc_ph_votes - mean(testing$pc_ph_votes))^2)
+1 - rss_step / tss
+
+rss_glm <- sum((testing$pc_ph_votes - testing$glmnet_pred)^2)
+1 - rss_glm / tss
+```
+
+In this section, we will try and predict Pakatan Harapan's performance (in this case, the percentage of votes we anticipate them to receive) in the upcoming general election. 
 
 
-```{r ph-win-chance, eval=FALSE}
-ballots |> 
+```{r safe-seats}
+
+modifier <- ballots |> 
   filter(coalition == "PH") |>
+  # For the chance of PH winning a seat if it has less than 50% of the votes
   filter(votes_perc < 50) |> 
   mutate(ph_win = ifelse(result %in% c("won", "won_uncontested"), 1, 0)) %>% 
   lm(ph_win ~ votes_perc, data = .) |> 
   summary() |> 
-  tidy()
-```
+  tidy() |> 
+  filter(term == "votes_perc") |> 
+  pull(estimate)
 
-
-
-
-```{r}
 safe_seats <- testing |> 
   left_join(
     ballots |> 
@@ -996,15 +1098,24 @@ safe_seats <- testing |>
     by = c("parlimen" = "seat")
   ) |> 
   mutate(
-    ph_win_chance = ifelse(proj_ph_vote > .5, 1, proj_ph_vote * 0.01479184 * 100)) |> 
+    ph_win_chance = ifelse(proj_ph_vote > .5, 1, proj_ph_vote * modifier * 100)) |> 
   filter(ph_win_chance > .5) |> 
   nrow()
+
+ph_ge_15 <- ballots |> 
+  mutate(count = 1) |> 
+  filter(election == "GE-15" & result %in% c("won", "won_uncontested")) |> 
+  group_by(coalition) |> 
+  summarise(count = sum(count), .groups = "drop") |> 
+  mutate(pc = round(count / 222 * 100, 2)) |> 
+  filter(coalition == "PH") |> 
+  pull(count)
 ```
 
 
 Below, the performance of PH is GE-15 is plotted against their predicted performance in GE-16, with each point being a federal electoral constituency. First of, we note that the combined stepwise-glmnet model predicts that PH's vote share will shrink in GE-16. 
 
-We note that the number of "safe" seats that PH can expect to win is only **`r safe_seats`** out of the 222 total seats in parliament. 
+We note that the number of seats that PH can expect to win is only **`r safe_seats`** out of the 222 total seats in parliament, down from `r ph_ge_15` in GE-15. 
 
 
 <br>
@@ -1021,7 +1132,7 @@ pred_plot <- testing |>
     by = c("parlimen" = "seat")
   ) |> 
   mutate(
-    ph_win_chance = ifelse(proj_ph_vote > .5, 1, proj_ph_vote * 0.01479184 * 100)) |> 
+    ph_win_chance = ifelse(proj_ph_vote > .5, 1, proj_ph_vote * modifier * 100)) |> 
   ggplot(aes(x = pc_ph_votes, y = proj_ph_vote)) + 
   geom_point(aes(colour = ph_win_chance,
                  text = paste0(parlimen, ",", "\n", 
@@ -1050,7 +1161,7 @@ ggplotly(pred_plot, tooltip = c("text")) |>
 
 <br>
 
-These predictions also underscore the instability of the Madani government's coalition. The results have been re-plotted below to show the GE-15 winner of each constituency. Marginal seats where PH may seak to expand its reach will largely only come at the expense of BN and vice versa. 
+These predictions also underscore the instability of the Madani government's coalition. The results have been re-plotted below to show the GE-15 winner of each constituency. Marginal seats (roughly in the middle of the graph below) where PH may seak to expand its reach will largely only come at the expense of BN and vice versa. 
 
 There are a fair number of marginal seats where PH received less than 40% of the votes in GE-15, but were still won by PH (many of these were three-cornered fights). These are all vulnerable for pickup by BN or PN. 
 
@@ -1091,15 +1202,19 @@ ggplotly(pred_plot_coalition, tooltip = c("text")) |>
   config(displayModeBar = FALSE)
 ```
 
+<br>
+
+We may improve these predictions if we had access to additional small-area demographic data, such as education levels as well as a breakdown of the population by religion. 
+
+
 
 <br><br><br>
-
 
 ## Three-cornered fights and shrinking vote share
 
 Given the loose alliances between the various coalitions, three-cornered fights have become much more prevalent. 
 
-The primary beneficiaries of three-cornered fights after the collapse of UMNO have been Pakatan Harapan and BN. Only a minority of PH/PR seats were won with less than 50% of the votes 
+The primary beneficiaries of three-cornered fights after the collapse of UMNO have been Pakatan Harapan and BN. Only a minority of PH/PR seats were won with less than 50% of the votes. 
 
 <br>
 
@@ -1143,16 +1258,17 @@ ballots |>
 
 <br>
 
-However, the margin by which PH/PR has won has been trending downwards. And its footprint is narrowing, especially with PKR focusing on [safe seats](https://www.freemalaysiatoday.com/category/nation/2026/04/16/avoiding-weak-seats-a-realistic-strategy-says-analyst).
+However, the margin by which PH/PR has won has been trending downwards. And its footprint is narrowing, especially with PKR focusing on [safe seats](https://www.freemalaysiatoday.com/category/nation/2026/04/16/avoiding-weak-seats-a-realistic-strategy-says-analyst). It seems that they too are predicting losses for PH and are seeking 
 
 <br>
 
 
 
-```{r}
+```{r ph-performance-year}
 ballots |> 
   filter(coalition %in% c("PH", "PR")) |> 
-  mutate(year = year(date)) |> 
+  mutate(year = year(date), 
+         result = str_to_title(str_replace(result, "_", " "))) |> 
   ggplot(aes(x = str_sub(year, 3L), y = votes_perc / 100)) + 
   geom_jitter(aes(colour = result)) + 
   scale_colour_viridis_d(option = "plasma") + 
@@ -1169,15 +1285,156 @@ ballots |>
 <br>
 
 
-[James Chin](https://www.commonwealthroundtable.co.uk/commonwealth/eurasia/malaysia/research-article-anwars-long-walk-to-power-the-2022-malaysian-general-elections/) at the Commonwealth Roundtable argues that there is no longer any middle ground left in Malaysian politics, with the DAP on one end and PAS on the other. This erosioon of the middle ground will have a profound impact on Pakatan Harapan's election chances, especially as it refuses to engage in the Islamisation race or put forward a vision that can win over Malay youth. 
+[James Chin](https://www.commonwealthroundtable.co.uk/commonwealth/eurasia/malaysia/research-article-anwars-long-walk-to-power-the-2022-malaysian-general-elections/) at the Commonwealth Roundtable argues that there is no longer any middle ground left in Malaysian politics, with the DAP on one end and PAS on the other. This erosion of the middle ground will have a profound impact on Pakatan Harapan's election chances, especially as it refuses to engage in the Islamisation race or put forward an alternative vision that can win over Malay youth. 
 
 <br><br><br>
+
+## Barisan Nasional vs. Perikatan Nasional
+
+
+```{r pn-bn-train-test}
+pn_bn_train <- training |> 
+  mutate(pc_pn_votes = pn_votes / total_votes, 
+         pc_bn_votes = bn_votes / total_votes, 
+         bn_pn_difference_pc = pc_bn_votes - pc_pn_votes)
+
+pn_bn_test <- testing |> 
+  select(-proj_ph_vote, 
+         -step_pred, 
+         -glmnet_pred) |> 
+  mutate(pc_pn_votes = pn_votes / total_votes, 
+         pc_bn_votes = bn_votes / total_votes, 
+         bn_pn_difference_pc = pc_bn_votes - pc_pn_votes)
+```
+
+```{r stepwise-bn-pn}
+#| echo: false
+#| output: false
+
+stepwise_model_bp <- step(lm(
+  bn_pn_difference_pc ~ population_density + pc_bumi_peninsula + pc_bumi_east_malaysia + 
+  pc_chinese + pc_indian + gini + income_avg + poverty_incidence + 
+    labour_force_participation_rate + sex_ratio + total_dependency_ratio + 
+    average_household_size, 
+  data = pn_bn_train, 
+  direction = "backward"
+))
+
+stepwise_model_bp |> summary()
+```
+
+
+```{r glmnet-bn-pn}
+set.seed(3)
+
+glmnet_model_bp <- train(
+  bn_pn_difference_pc ~ population_density + pc_bumi_peninsula + pc_bumi_east_malaysia + 
+  pc_chinese + pc_indian + gini + income_avg + poverty_incidence + 
+    labour_force_participation_rate + sex_ratio + total_dependency_ratio + 
+    average_household_size, 
+  data = pn_bn_train, 
+  method = "glmnet", 
+  metric = "RMSE", 
+  trControl = trainControl(method = "LOOCV"), 
+  preProcess = c("center", "scale"), 
+  tuneLength = 10
+)
+```
+
+```{r preds-bn-pn}
+preds_pn_bn <- pn_bn_test %>%
+  mutate(
+    aic_pred = predict(object = stepwise_model_bp, newdata = .),
+    glmnet_pred = predict(object = glmnet_model_bp, newdata = pn_bn_test)
+  ) %>%
+  mutate(pred = (aic_pred + glmnet_pred) / 2) |> 
+  select(bn_pn_difference_pc_pred = pred, 
+         step_pred = aic_pred, 
+         glmnet_pred = glmnet_pred)
+
+pn_bn_test <- pn_bn_test |> 
+  cbind(preds_pn_bn)
+
+```
+
+Let's use the same combination of stepwise linear modelling and glmnet to examine to see how well we can predict 
+
+Clustered at `x = 0` are the constituencies where BN and PN were closest to each other in number of votes: these are the constituencies where they are most competitive (with each other) and not competitive at all (likely losing by a large margin to PH or another coalition). 
+
+BN is expected to lose even more ground to PN in the upcoming 16th general election, making further inroads into Johor, Pahang and Perak. It will largely only be BN's competitiveness in East Malaysia that will keep it afloat. 
+
+In the plot below, negative values on the y-axis indicate PN winning more votes than BN. We note that the model predicts PN winning more votes than BN in almost all the constituencies than BN won in GE-15. 
+
+<br>
+
+
+```{r results-bn-pn}
+#| out-width: 100%
+#| out-height: 100%
+pred_pn_bn_coalition <- pn_bn_test |> 
+  left_join(
+    ballots |> 
+      filter(election == "GE-15" & result %in% c("won", "won_uncontested")) |> 
+      select(state, seat, coalition), 
+    by = c("parlimen" = "seat")
+  ) |> 
+  left_join(census_fed |>
+              select(parlimen,
+                     pc_chinese_actual = pc_chinese, 
+                     pc_indian_actual = pc_indian, 
+                     pc_bumi_actual = pc_bumi,
+                     pop_den_actual = population_density), 
+            by = "parlimen") |> 
+  ggplot(aes(x = bn_pn_difference_pc, y = bn_pn_difference_pc_pred)) + 
+  geom_vline(xintercept = 0, linetype = 2, size = .7, colour = "grey30") + 
+  geom_hline(yintercept = 0, linetype = 2, size = .7, colour = "grey30") +
+  geom_point(aes(colour = coalition,
+                 text = paste0(parlimen, ",", "\n", 
+                               state, ",", "\n", 
+                               "Projected BN-PN diff.%: ", 
+                               round(bn_pn_difference_pc_pred * 100, 2), "%", "\n", 
+                               "Actual BN-PN diff.%: ", round(bn_pn_difference_pc * 100, 2), "%", "\n", 
+                               "GE-15 BN%: ", round(pc_bn_votes * 100, 2), "%", "\n",
+                               "GE-15 PN%: ", round(pc_pn_votes * 100, 2), "%", "\n", 
+                               "% Bumi: " , round(pc_bumi_actual * 100, 2), "%", "\n",
+                               "% Chinese: " , round(pc_chinese_actual * 100, 2), "%", "\n",
+                               "Population density: " , round(pop_den_actual, 2), "\n",
+                               "GE-15 winner: ", coalition)),
+             stroke = NA, 
+             size = 2) +
+  geom_smooth(method = "lm") + 
+  scale_colour_manual(values = c("ALONE" = "#30123B40", 
+                                 "BN" = "#3E9BFEFF",
+                                 "GPS" = "#46F88440", 
+                                 "GRS" = "#E1DD3740",
+                                 "PH" = "#F05B1240", 
+                                 "PN" = "#7A0403FF")) +
+  scale_x_continuous(labels = percent, breaks = seq(-1, 1, .1)) + 
+  scale_y_continuous(labels = percent, breaks = seq(-1, 1, .1)) +
+  labs(colour = "Winning\ncoalition\nin GE15", 
+       x = "% Difference between BN and PN votes in GE-15", 
+       y = "Projected % Difference between BN and PN votes in GE-16", 
+       title = "Projected difference in BN and PN votes vs. actual difference", 
+       subtitle = "Mouse over for details; drag and click to select and zoom; double-click legend select/deselect")
+
+ggplotly(pred_pn_bn_coalition, tooltip = c("text")) |> 
+  layout(height = 500, width = 800, 
+         margin = list(t = 50)) |> 
+  config(displayModeBar = FALSE)
+```
+
+<br><br><br>
+
+# Conclusions
+
+
+
 
 # Data 
 
 The data for this report comes primarily from  [Thevesh](https://github.com/Thevesh/paper-meco-results/tree/main), who compiled the *Malaysian Election Corpus*, containing federal and state-level election results since 1955. 
 
-Additional data, including the digitised census datasets, come from [JJean95](https://www.kaggle.com/datasets/jjean95/malaysia-general-election-datasets?select=census_dun.csv).
+Additional data, including the digitised census datasets, come from [JJean95](https://www.kaggle.com/datasets/jjean95/malaysia-general-election-datasets?select=census_dun.csv) and [Jane Loh](https://www.kaggle.com/datasets/janeloh/malaysia-census-demographic-2020).
 
 In this analysis, we have used constituency populations as opposed to the number of voters because MPs represent all peoples within their constituencies, not just electors. 
 
@@ -1195,7 +1452,9 @@ Azzubair, Kartini & Nazri Muslim (2026). A Systematic Literature Review of Malay
 Chin, J. (2023) Anwar’s long walk to power: the 2022 Malaysian general
 elections, The Round Table, 112:1, 1-13, DOI: 10.1080/00358533.2023.2165303
 
-JJean95 (2022). *Malaysia General Election Results (GE12-GE15)*. https://www.kaggle.com/datasets/jjean95/malaysia-general-election-datasets?select=census_dun.csv
+JJean95 (2022). *Malaysia General Election Results (GE12-GE15)*. https://www.kaggle.com/datasets/jjean95/malaysia-general-election-datasets
+
+Loh, J. (2023). *Malaysia Census Demographic 2020*. https://www.kaggle.com/datasets/janeloh/malaysia-census-demographic-2020
 
 Deivasagayam, A.D. (2025). Explaining UMNO's Downfall Post GE14 and GE15: The Strengthened Convergence Between Two Cleavage Systems. *Malaysian Journal of Social Sciences and Humanities*, 10(2). https://doi.org/10.47405/mjssh.v10i2.3248
 
