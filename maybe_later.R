@@ -653,4 +653,24 @@ ballots |>
        title = "Ethnicity of winning candidates by party", 
        subtitle = "Since 2006; parties sorted by number of MPs", 
        fill = "Candidate\nethnicity")
+
+ballots |> 
+  mutate(count = 1) |> 
+  filter(election == "GE-15") |> 
+  filter(coalition %in% c("PH", "BN", "PN")) |> 
+  group_by(seat) |> 
+  summarise(candidates = sum(count)) |> 
+  left_join(
+    ballots |> 
+      filter(election == "GE-15" & result %in% c("won", "won_uncontested")) |> 
+      select(seat, winner = coalition), 
+    by = "seat"
+  ) |> 
+  mutate(count = 1) |> 
+  ggplot(aes(x = candidates, y = count)) + 
+  geom_col(aes(fill = winner)) + 
+  scale_fill_viridis_d(option = "magma")
+
+PH may extend their reach by running better races and fielding better candidates in Bagan Datuk in Perak, Titiwangsa in KL, Tampin and Jempol in Negeri Sembilan, Kuala Langat in Selangor and Padang Serai in Kedah. 
+
         
