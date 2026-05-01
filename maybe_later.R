@@ -673,4 +673,208 @@ ballots |>
 
 PH may extend their reach by running better races and fielding better candidates in Bagan Datuk in Perak, Titiwangsa in KL, Tampin and Jempol in Negeri Sembilan, Kuala Langat in Selangor and Padang Serai in Kedah. 
 
-        
+
+ballots |>
+  left_join(
+    multiracial_races, 
+    by = c("state", "seat", "date", "federal", "election")
+  ) |> 
+  mutate(year = year(date), 
+         decade = year - year %% 10, 
+         count = 1, 
+         ethnicity = ifelse(ethnicity == "Orang Asli", "Other", ethnicity)) |>
+  filter(result %in% c("won", "won_uncontested") & combination == "multiethnic") |> 
+  group_by(
+    decade, federal, combination, ethnicity
+  ) |> 
+  summarise(count = sum(count), .groups = "drop") |> 
+  group_by(decade, federal) |> 
+  mutate(total = sum(count)) |> 
+  ungroup() |>
+  mutate(pc = count / total) |> 
+  ggplot(aes(x = decade, y = pc, fill = fct_relevel(ethnicity, 
+                                                    c("Bumi Sabah", 
+                                                      "Bumi Sarawak", 
+                                                      "Chinese", 
+                                                      "Indian", 
+                                                      "Malay", 
+                                                      "Other")))) + 
+  geom_col() + 
+  facet_wrap(~ federal) + 
+  scale_y_continuous(labels = percent) +
+  scale_fill_manual(
+    values = c(
+      "Bumi Sabah" = "#440154FF", 
+      "Bumi Sarawak" = "#414487FF",
+      "Chinese" = "#2A788EFF",
+      "Indian" = "#22A884FF",
+      "Malay" = "#7AD151FF",
+      "Other" = "#FDE725FF")
+  ) +
+  scale_x_continuous(breaks = seq(1950, 2020, 10)) +
+  labs(fill = "Combination",
+       title = "Multiethnic electoral races were most commonly won by Chinese candidates",
+       subtitle = "Though this has been on the downtrend since the 00s",
+       x = "", 
+       y = "") + 
+  theme(strip.background = element_rect(fill = "grey20"), 
+        axis.text.x = element_text(size = 7))
+
+ballots |>
+  left_join(
+    multiracial_races, 
+    by = c("state", "seat", "date", "federal", "election")
+  ) |> 
+  mutate(year = year(date), 
+         decade = year - year %% 10, 
+         count = 1) |>
+  # This is just to isolate the number of electoral races
+  filter(result %in% c("won", "won_uncontested")) |> 
+  group_by(
+    decade, federal, combination
+  ) |> 
+  summarise(count = sum(count), .groups = "drop") |> 
+  group_by(decade, federal) |> 
+  mutate(total = sum(count), 
+         combination = case_when(
+           combination == "sabah_only" ~ "bumi_sabah_only", 
+           combination == "sarawak_only" ~ "bumi_sarawak_only", 
+           TRUE ~ combination), 
+         combination = str_to_title(str_replace_all(combination, "_", " "))
+  ) |> 
+  ungroup() |>
+  mutate(pc = count / total) |> 
+  ggplot(aes(x = decade, y = pc, fill = fct_relevel(combination, 
+                                                    c("Bumi Sabah Only", 
+                                                      "Bumi Sarawak Only", 
+                                                      "Chinese Only", 
+                                                      "Indian Only", 
+                                                      "Malay Only", 
+                                                      "Other Only", 
+                                                      "Multiethnic")))) + 
+  geom_col() + 
+  facet_wrap(~ federal) + 
+  scale_y_continuous(labels = percent) +
+  scale_fill_manual(
+    values = c(
+      "Bumi Sabah Only" = "#440154FF", 
+      "Bumi Sarawak Only" = "#414487FF",
+      "Chinese Only" = "#2A788EFF",
+      "Indian Only" = "#22A884FF",
+      "Malay Only" = "#7AD151FF",
+      "Other Only" = "#FDE725FF",
+      "Multiethnic" = "#FCFDBFFF"
+    )
+  ) +
+  scale_x_continuous(breaks = seq(1950, 2020, 10)) +
+  labs(fill = "",
+       title = "Multiethnic electoral races were least common during the 90s and 00s", 
+       x = "", 
+       y = "") + 
+  theme(strip.background = element_rect(fill = "grey20"), 
+        axis.text.x = element_text(size = 7))
+
+# For linkedin
+
+pn_test |> 
+  left_join(
+    ballots |> 
+      filter(election == "GE-15" & result %in% c("won", "won_uncontested")) |> 
+      select(state, seat, coalition), 
+    by = c("parlimen" = "seat")
+  ) |> 
+  mutate(pn_win_chance = ifelse(
+    proj_pn_vote < .5, proj_pn_vote * modifier_pn1 * 100, proj_pn_vote * modifier_pn2 * 100), 
+    pn_win_chance = ifelse(pn_win_chance > 1, 1, pn_win_chance)) |> 
+  ggplot(aes(x = pc_pn_votes, y = proj_pn_vote)) + 
+  geom_point(aes(colour = pn_win_chance,
+                 text = paste0(parlimen, ",", "\n", 
+                               state, ",", "\n", 
+                               "PN win chance: ", round(pn_win_chance * 100, 2), "%", "\n",
+                               "Projected PN%: ", round(proj_pn_vote * 100, 2), "%", "\n", 
+                               "GE-15 PN%: ", round(pc_pn_votes * 100, 2), "%", "\n", 
+                               "GE-15 winner: ", coalition))) +
+  geom_smooth(method = "lm") + 
+  scale_colour_viridis(option = "plasma", 
+                       labels = percent) + 
+  scale_x_continuous(labels = percent, breaks = seq(0, 1, .1)) + 
+  scale_y_continuous(labels = percent, breaks = seq(0, 1, .1)) +
+  labs(colour = "Chance of\nPN win", 
+       x = "% PH votes in GE-15", 
+       y = "Projected % of PN votes in GE-16", 
+       title = "Perikatan Nasional GE-15 results and predictions for GE-16")
+
+testing_preds |> 
+  left_join(
+    ballots |> 
+      filter(election == "GE-15" & result %in% c("won", "won_uncontested")) |> 
+      select(state, seat, coalition), 
+    by = c("parlimen" = "seat")
+  ) |> 
+  mutate(ph_win_chance = ifelse(
+    proj_ph_vote < .5, proj_ph_vote * modifier1 * 100, proj_ph_vote * modifier2 * 100), 
+    ph_win_chance = ifelse(ph_win_chance > 1, 1, ph_win_chance)) |> 
+  ggplot(aes(x = pc_ph_votes, y = proj_ph_vote)) + 
+  geom_point(aes(colour = ph_win_chance,
+                 text = paste0(parlimen, ",", "\n", 
+                               state, ",", "\n", 
+                               "PH win chance: ", round(ph_win_chance * 100, 2), "%", "\n",
+                               "Projected PH%: ", round(proj_ph_vote * 100, 2), "%", "\n", 
+                               "GE-15 PH%: ", round(pc_ph_votes * 100, 2), "%", "\n", 
+                               "GE-15 winner: ", coalition))) +
+  geom_smooth(method = "lm") + 
+  scale_colour_viridis(option = "plasma", 
+                       labels = percent) + 
+  scale_x_continuous(labels = percent, breaks = seq(0, 1, .1)) + 
+  scale_y_continuous(labels = percent, breaks = seq(0, 1, .1)) +
+  labs(colour = "Chance of\nPH win", 
+       x = "% Pakatan Harapan votes in GE-15", 
+       y = "Projected % of PH votes in GE-16", 
+       title = "Pakatan Harapan GE-15 results and predictions for GE-16")
+
+pn_bn_results |> 
+  left_join(
+    ballots |> 
+      filter(election == "GE-15" & result %in% c("won", "won_uncontested")) |> 
+      select(state, seat, coalition), 
+    by = c("parlimen" = "seat")
+  ) |> 
+  left_join(census_fed |>
+              select(parlimen,
+                     pc_chinese_actual = pc_chinese, 
+                     pc_indian_actual = pc_indian, 
+                     pc_bumi_actual = pc_bumi,
+                     pop_den_actual = population_density), 
+            by = "parlimen") |> 
+  ggplot(aes(x = bn_pn_difference_pc, y = bn_pn_difference_pc_pred)) + 
+  geom_vline(xintercept = 0, linetype = 2, size = .7, colour = "grey30") + 
+  geom_hline(yintercept = 0, linetype = 2, size = .7, colour = "grey30") +
+  geom_point(aes(colour = coalition,
+                 text = paste0(parlimen, ",", "\n", 
+                               state, ",", "\n", 
+                               "Projected BN-PN diff.%: ", 
+                               round(bn_pn_difference_pc_pred * 100, 2), "%", "\n", 
+                               "Actual BN-PN diff.%: ", round(bn_pn_difference_pc * 100, 2), "%", "\n", 
+                               "GE-15 BN%: ", round(pc_bn_votes * 100, 2), "%", "\n",
+                               "GE-15 PN%: ", round(pc_pn_votes * 100, 2), "%", "\n", 
+                               "% Bumi: " , round(pc_bumi_actual * 100, 2), "%", "\n",
+                               "% Chinese: " , round(pc_chinese_actual * 100, 2), "%", "\n",
+                               "Population density: " , round(pop_den_actual, 2), "\n",
+                               "GE-15 winner: ", coalition)),
+             stroke = NA, 
+             size = 2) +
+  geom_smooth(method = "lm") + 
+  scale_colour_manual(values = c("ALONE" = "#30123B40", 
+                                 "BN" = "#3E9BFEFF",
+                                 "GPS" = "#46F88440", 
+                                 "GRS" = "#E1DD3740",
+                                 "PH" = "#F05B1240", 
+                                 "PN" = "#7A0403FF")) +
+  scale_x_continuous(labels = percent, breaks = seq(-1, 1, .1)) + 
+  scale_y_continuous(labels = percent, breaks = seq(-1, 1, .1)) +
+  labs(colour = "Winning\ncoalition\nin GE15", 
+       x = "% Difference between BN and PN votes in GE-15", 
+       y = "Projected % difference between BN and PN votes in GE-16", 
+       title = "Difference in BN and PN votes vs. actual difference")
+
+ggsave("./plots/pn_bn_predictions.png", height = 4, width = 7, units = "in")
