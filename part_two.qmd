@@ -33,6 +33,7 @@ library(ggthemes)
 library(glmnet)
 library(caret)
 library(plotly)
+library(tidypredict)
 
 `%out%` <- Negate(`%in%`)
 options(scipen = 100)
@@ -256,22 +257,20 @@ tribble(
 
 Part one of this report may be read [here](https://aimdata-labs.github.io/malaysian_elections/). 
 
-# Racialisation of elections
+# Introduction: racialisation of elections
 
-According to an [Architects of Diversity survey](https://www.aodmalaysia.org/sods), 64% of Malaysians reporting experiencing some for of discrimination in the past 12 months, with 38% saying the discrimination was related to socioeconomic status, 33% saying it was related to age and 32% saying it was related to ethnicity. 
+According to an [Architects of Diversity survey](https://www.aodmalaysia.org/sods), 64% of Malaysians reporting experiencing some for of discrimination in the past 12 months, with 32% saying it was related to ethnicity. 
 
 Hindus were the most likely to have experienced religious-based discrimination (40%), compared to their Christian (26%), Buddhists (22%) and Muslims (20%). 59% of Muslim respondents believe their own religious group faced a lot discrimination, with the figure being 63% amongst Buddhists, 76% amongst Christians and 81% amongst Hindus. 
 
-According to [Pusat KOMAS](https://komas.org/download/Malaysia-Racism-Report_A-Decade-In-Review-2015-2024.pdf), election years tend to see "sharp increases in racial discrimination narratives [...] Political parties have consistently used race and religion as mobilization tools". They add, "politics accounted for just over 43% of all recorded racial discrimination incidents between 2015 and 2024" and that "racial and religious politics remain the primary diver of racial discrimination in Malaysia". 
+[Pusat KOMAS](https://komas.org/download/Malaysia-Racism-Report_A-Decade-In-Review-2015-2024.pdf) states that election years tend to see "sharp increases in racial discrimination narratives [...] Political parties have consistently used race and religion as mobilization tools". They add, "politics accounted for just over 43% of all recorded racial discrimination incidents between 2015 and 2024" and that "racial and religious politics remain the primary diver of racial discrimination in Malaysia". 
 
 The next general election is likely to witness another surge in racial politics, particularly with PAS and Bersatu continuing to consolidate their Malay-Muslim voter bases. 
 
-<br><br><br>
+43% (97 out of 222 constituencies) have ever had multiethnic electoral races (where the candidates were from different races). These constituencies align largely with the areas with the highest concentrations of non-Bumiputeras. 
 
 
-
-
-# Multiethnic electoral races
+<br>
 
 ```{r map}
 
@@ -347,124 +346,7 @@ parlimen_geo |>
 
 <br>
 
-43% (97 out of 222 constituencies) have ever had multiethnic electoral races. These constituencies align largely with the areas with the highest concentrations of non-Bumiputeras. 
-
-
-
-<br>
-
-```{r race-type}
-ballots |>
-  left_join(
-    multiracial_races, 
-    by = c("state", "seat", "date", "federal", "election")
-  ) |> 
-  mutate(year = year(date), 
-         decade = year - year %% 10, 
-         count = 1) |>
-  # This is just to isolate the number of electoral races
-  filter(result %in% c("won", "won_uncontested")) |> 
-  group_by(
-    decade, federal, combination
-  ) |> 
-  summarise(count = sum(count), .groups = "drop") |> 
-  group_by(decade, federal) |> 
-  mutate(total = sum(count), 
-         combination = case_when(
-           combination == "sabah_only" ~ "bumi_sabah_only", 
-           combination == "sarawak_only" ~ "bumi_sarawak_only", 
-           TRUE ~ combination), 
-         combination = str_to_title(str_replace_all(combination, "_", " "))
-         ) |> 
-  ungroup() |>
-  mutate(pc = count / total) |> 
-  ggplot(aes(x = decade, y = pc, fill = fct_relevel(combination, 
-                                   c("Bumi Sabah Only", 
-                                     "Bumi Sarawak Only", 
-                                     "Chinese Only", 
-                                     "Indian Only", 
-                                     "Malay Only", 
-                                     "Other Only", 
-                                     "Multiethnic")))) + 
-  geom_col() + 
-  facet_wrap(~ federal) + 
-  scale_y_continuous(labels = percent) +
-  scale_fill_manual(
-    values = c(
-      "Bumi Sabah Only" = "#440154FF", 
-      "Bumi Sarawak Only" = "#414487FF",
-      "Chinese Only" = "#2A788EFF",
-      "Indian Only" = "#22A884FF",
-      "Malay Only" = "#7AD151FF",
-      "Other Only" = "#FDE725FF",
-      "Multiethnic" = "#FCFDBFFF"
-    )
-  ) +
-  scale_x_continuous(breaks = seq(1950, 2020, 10)) +
-  labs(fill = "",
-       title = "Multiethnic electoral races were least common during the 90s and 00s", 
-       x = "", 
-       y = "") + 
-  theme(strip.background = element_rect(fill = "grey20"), 
-        axis.text.x = element_text(size = 7))
-```
-<br>
-
-Most constituencies in Malaysia are multi-ethnic in nature: `r census_fed |> filter(pc_bumi > .75) |> nrow()` out of the `r census_fed |> nrow()` federal constituencies have at least 25% of their populations being racial minorities. The latest redelineation was done in 2006 and the plots in this section will focus on the years since then. 
-
-
-<br> 
-
-```{r multiethnic-race}
-ballots |>
-  left_join(
-    multiracial_races, 
-    by = c("state", "seat", "date", "federal", "election")
-  ) |> 
-  mutate(year = year(date), 
-         decade = year - year %% 10, 
-         count = 1, 
-         ethnicity = ifelse(ethnicity == "Orang Asli", "Other", ethnicity)) |>
-  filter(result %in% c("won", "won_uncontested") & combination == "multiethnic") |> 
-  group_by(
-    decade, federal, combination, ethnicity
-  ) |> 
-  summarise(count = sum(count), .groups = "drop") |> 
-  group_by(decade, federal) |> 
-  mutate(total = sum(count)) |> 
-  ungroup() |>
-  mutate(pc = count / total) |> 
-  ggplot(aes(x = decade, y = pc, fill = fct_relevel(ethnicity, 
-                                   c("Bumi Sabah", 
-                                     "Bumi Sarawak", 
-                                     "Chinese", 
-                                     "Indian", 
-                                     "Malay", 
-                                     "Other")))) + 
-  geom_col() + 
-  facet_wrap(~ federal) + 
-  scale_y_continuous(labels = percent) +
-  scale_fill_manual(
-    values = c(
-      "Bumi Sabah" = "#440154FF", 
-      "Bumi Sarawak" = "#414487FF",
-      "Chinese" = "#2A788EFF",
-      "Indian" = "#22A884FF",
-      "Malay" = "#7AD151FF",
-      "Other" = "#FDE725FF")
-  ) +
-  scale_x_continuous(breaks = seq(1950, 2020, 10)) +
-  labs(fill = "Combination",
-       title = "Multiethnic electoral races were most commonly won by Chinese candidates",
-       subtitle = "Though this has been on the downtrend since the 00s",
-       x = "", 
-       y = "") + 
-  theme(strip.background = element_rect(fill = "grey20"), 
-        axis.text.x = element_text(size = 7))
-```
-
-
-<br>
+`r census_fed |> filter(pc_bumi > .75) |> nrow()` out of the `r census_fed |> nrow()` federal constituencies have at least 25% of their populations being racial minorities. The latest redelineation was done in 2006 and the plots in this section will focus on the years since then. 
 
 Commonsensically, given the racialised nature of Malaysian politics, Bumiputera candidates are far more likely to win in areas that have high proportions of Bumiputera candidates. Non-bumiputera candidates almost never win seats in constituencies with more than 75% Bumiputera residents and Bumiputera candidates tend only to win when a constituency has a population that is more than 50% Bumi. 
 
@@ -560,14 +442,13 @@ ballots |>
 
 <br> 
 
-
-A significant minority of non-Bumiputera MPs were from BN. Additionally, most of those wins came from constituencies with higher Bumiputera populations, indicating that party loyalty (which itself has racial connotations) was, at one point, stronger than the ethnicity of individual candidates. 
+A significant minority of non-Bumiputera MPs were from BN. Additionally, most of those wins came from constituencies with higher Bumiputera populations, indicating that party loyalty (which itself has racial connotations) was, at one point, a stronger factor than the ethnicity of individual candidates. 
 
 <br><br><br>
 
 # Ethnic makeup of parties and coalitions
 
-Amongst the various coalitions, East Malysian Coalitions and Gagasan Sejahtera were the most racially homogenous. Proportionally, Pakatan Harapan and Pakatan Rakyat both fielded more Malay candidates than Barisan Nasional. 
+Amongst the various coalitions, East Malysian Coalitions and Gagasan Sejahtera were the most racially homogeneous. Proportionally, Pakatan Harapan and Pakatan Rakyat both fielded more Malay candidates than Barisan Nasional. 
 
 However, as noted by [Azzubair, Kartini and Nazri](https://www.frontiersin.org/journals/political-science/articles/10.3389/fpos.2026.1721966/full), whilst BN might be multiethnic in nature, the coalition was not consociational, but was "sustained more by UMNO’s control and patronage than by genuine power-sharing". 
 
@@ -603,9 +484,12 @@ ballots |>
 
 <br>
 
-The plot below shows the breakdown of candidates by ethnicity and party. No party reflects the racial make-up of the country. Amanah, Bersatu, PAS and UMNO are Malay parties; DAP, Gerakan and the MCA are Chinese parties. The MIC is an Indian party, PBB is a Sabahan party and WARISAN is a Sarawakian party. 
+The plot below shows the breakdown of candidates by ethnicity and party. Amanah, Bersatu, PAS and UMNO are Malay parties; DAP, Gerakan and the MCA are Chinese parties. The MIC is an Indian party, PBB is a Sabahan party and WARISAN is a Sarawakian party. 
 
-When we look at party level, we note that BEBAS and PKR are the only true multiracial parties, with all other parties being dominated by a main ethnic group. 
+BEBAS and PKR are the only true multiracial parties, with all other parties being dominated by a main ethnic group. 
+
+However, despite having representation from all major ethnicities, the idea of a multiracial Malaysia nation (*Bangsa Malaysia*) has failed at a cultural-cognitive level, with [Law and Zaini](https://mysitasi.mohe.gov.my/uploads/get-media-file?refId=f7b5ff9d-7a8a-416a-baad-b5c84b43e4a2) arguing that this ideology is neither internalised nor taken for granted. One academic expert in their study states, "[Malaysians] fall back on primordial identity... no one identifies himself or herself as Bangsa Malaysia". They ultimately conclude that "moments of public disillusionment with identity politics are insufficient to overturn deep-seated institutional [inequality]". 
+
 
 <br> 
 
@@ -647,8 +531,7 @@ ballots |>
 
 # The collapse of UMNO and Islamic politics
 
-According to [Deivasagayam](https://msocialsciences.com/index.php/mjssh/article/view/3248/2134), the two main cleavages in Malaysian society -- race and religion -- have converged, contributing to UMNO's downfall. He continues, "UMNO consistently positioned itself as the exclusive advocate and guardian of Malay rights and privileges". However, by engaging in an "Islamisation Race" to stave off PAS, UMNO inadvertently legitimised PAS in the eyes of Muslim voters, and when it advocated for Malay Islamic Supremacy, it set that stage for the convergence for race and religion which would later ultimately benefit PAS and BERSATU, which demonstrated the political viability of a Malay-Muslim governance structure which excluded minorities. 
-
+According to [Deivasagayam](https://msocialsciences.com/index.php/mjssh/article/view/3248/2134), the two main cleavages in Malaysian society -- race and religion -- have converged, contributing to UMNO's downfall. He explains, "UMNO consistently positioned itself as the exclusive advocate and guardian of Malay rights and privileges". However, by engaging in an "Islamisation Race" and promoting state-engineered political Islam to stave off PAS, UMNO inadvertently legitimised PAS in the eyes of Muslim voters; and when it advocated for Malay Islamic Supremacy, it set that stage for the convergence for race and religion which would later ultimately benefit PAS and BERSATU, which demonstrated the political viability of a Malay-Muslim governance structure which excluded minorities. 
 
 We see, from the plot below, the extent of UMNO's electoral collapse. From its peak of `r filter(ballots, election == "GE-11" & result %in% c("won", "won_uncontested") & party == "UMNO") |> nrow()` seats under Badawi, it now holds less seats than either PAS, DAP, PKR or Bersatu. 
 
@@ -706,7 +589,6 @@ ballots |>
 
 However, when we examine their share of votes, we see that their parliamentary dominance was always more fragile than was perceived. At no time after 1960 did UMNO ever win more than 40% of the votes. Additionally, the Badawi peak of `r filter(ballots, election == "GE-11" & result %in% c("won", "won_uncontested") & party == "UMNO") |> nrow()` seats was accomplished with only 35% of the national vote, highlighting the unfairness of a first-past-the-post system. Though now, both UMNO and PKR are penalised by the first-past-the-post system, whereas PAS, DAP and Bersatu are each rewarded by it. 
 
-
 Finally, though their share of votes is lower than it has ever been, UMNO still, marginally, received more votes than any other party in the most recent general election. 
 
 <br> 
@@ -746,12 +628,11 @@ ballots |>
 
 <br> 
 
-Recalling Deivasagayam's arguments, [Syaza](https://www.iseas.edu.sg/wp-content/uploads/2024/04/TRS12_24.pdf) concludes that "the sense of Islamic identity and belonging often supersedes the allure of economic development for Malay youths when choosing how to cast their vote". 
+Echoing Deivasagayam's arguments, [Syaza](https://www.iseas.edu.sg/wp-content/uploads/2024/04/TRS12_24.pdf) concludes that "the sense of Islamic identity and belonging often supersedes the allure of economic development for Malay youths when choosing how to cast their vote". 
 
-This speaks to not only to the Islamisation race that UMNO, PAS and Bersatu have engaged in -- 65% of respondents in Muslim Youth Survey saying that Muslims should only vote for Muslim leaders -- but also to an unfair economic system where whatever economic boons offered are too meagre and piecemeal, and insufficient to attract voters.
+This speaks to not only to the Islamisation race that UMNO, PAS and Bersatu have engaged in -- 65% of respondents in a Merdeka Centre Muslim Youth Survey saying that Muslims should only vote for Muslim leaders -- but also to an unfair economic system where whatever economic boons offered are too meagre and piecemeal, and insufficient to overcome racial and religious identity politics.
 
-Pakatan Harapan seems unwilling to engage in the Islamisation Race or put forward a competing vision of a more moderate Islam, possibly -- I hypothesise -- out of fears that doing so would alienate its core non-Muslim base and anger conservative Muslims.
-
+Pakatan Harapan, furthermore, seems unwilling to engage in the Islamisation Race or put forward a competing vision of a more moderate Islam, possibly -- I hypothesise -- out of fears that doing so would simultaneously alienate its core non-Muslim base and anger conservative Muslims.
 
 
 
@@ -759,7 +640,7 @@ Pakatan Harapan seems unwilling to engage in the Islamisation Race or put forwar
 
 # Fragile coalitions
 
-Whilst public support for BN has faded considerably, between BN and PN, there was majority support for a Malay-supremacist (*Ketuanan Melayu*) government, picking up more than 50% of votes in GE-15, an increase in the vote share garnered by BN and GS in GE-14. 
+Whilst public support for BN has faded considerably, between BN and PN, there was majority support for a Malay-supremacist (*Ketuanan Melayu*) government, picking up more than 50% of votes in GE-15, an increase in the vote share garnered by Barisan and GS (PAS's previous coalition) in GE-14. 
 
 The current unity (*Madani*, PH-BN-GPS-GRS) government is heavily reliant on BN for both a parliamentary majority as well as a majority of the vote share. 
 
@@ -830,7 +711,7 @@ ballots |>
 
 The plots below show vote share amongst the major coalitions in state elections. We see that that PN has managed to garner a lead over PH in state polls. 
 
-Recalling our earlier criticism of Anwar in [part one](https://aimdata-labs.github.io/malaysian_elections/), is his bid with GRS to increase the number of seats in Sabah meant to engineer a more permanent parliamentary majority without needing to win the popular vote? We emphasise that any further malapportionment would be, ultimately, an anti-democratic exercise. 
+Recalling our earlier criticism of Anwar in [part one](https://aimdata-labs.github.io/malaysian_elections/), is his bid with GRS to increase the number of seats in Sabah meant to engineer a more lasting parliamentary majority without needing to win the popular vote? We emphasise again that any further malapportionment would be, ultimately, an anti-democratic exercise. 
 
 <br>
 
@@ -863,9 +744,9 @@ ballots |>
 
 <br> 
 
-There is a stark racial component in Malaysian politics. [Syaza](https://www.iseas.edu.sg/wp-content/uploads/2024/04/TRS12_24.pdf) argues that there is a strong dichotomy between Malay and non-Malay voters' perceptions of the government. 85% of Malay voters felt that the Perikatan Nasional government protects the interest of the Malays, while 77% of non-Malay voters believed the government does not treat all races equally. This is key to understanding political choices among different ethnic groups in Malaysia, not only in the 15th General Election, but also in previous elections.
+There is a stark racial component in Malaysian politics and [Syaza](https://www.iseas.edu.sg/wp-content/uploads/2024/04/TRS12_24.pdf) argues that there is a strong dichotomy between Malay and non-Malay voters' perceptions of the government. 85% of Malay voters felt that the Perikatan Nasional government protects the interest of the Malays, while 77% of non-Malay voters believed the government does not treat all races equally. This is key to understanding political choices among different ethnic groups in Malaysia, not only in the 15th General Election, but also in previous elections.
 
-Given this strong racial component to elections, we will next use demographic data to predict Pakatan Harapan's performance in GE-16. 
+Given this strong racial component to elections, we will next use demographic data to predict Pakatan Harapan's and Perikatan Nasional's performance in the upcoming GE-16. 
 
 
 <br><br><br>
@@ -939,8 +820,10 @@ training <- census_fed |>
     by = "parlimen"
   ) |> 
   filter(!is.na(pc_ph_votes)) |>
+  # Both population density and income must be logged
   mutate(population_density = log(population_density), 
          income_avg = log(income_avg)) |> 
+  # Normalising the variables
   mutate_at(
     c("population_density", "pc_bumi_peninsula", "pc_bumi_east_malaysia", 
       "pc_chinese", "pc_indian", "gini", "income_avg", 
@@ -987,8 +870,10 @@ testing <- census_fed |>
       mutate(pc_ph_votes = ph_votes / total_votes), 
     by = c("parlimen" = "seat")
   ) |> 
+   # Both population density and income must be logged
   mutate(population_density = log(population_density), 
          income_avg = log(income_avg)) |> 
+  # Normalising the variables
   mutate_at(
     c("population_density", "pc_bumi_peninsula", "pc_bumi_east_malaysia", 
       "pc_chinese", "pc_indian", "gini", "income_avg", 
@@ -1020,7 +905,6 @@ stepwise_model <- step(lm(
 # % of the population who are east malaysia bumis and % of the population who are indian
 
 ```
-
 
 
 ```{r glmnet-model-ph}
@@ -1124,7 +1008,7 @@ ph_ge_15 <- ballots |>
 ```
 
 
-Below, the performance of PH is GE-15 is plotted against their predicted performance in GE-16, with each point being a federal electoral constituency. First of, we note that the combined stepwise-glmnet model predicts that PH's vote share will shrink in GE-16. 
+Below, the performance of PH is GE-15 is plotted against their predicted performance in GE-16, with each point being a federal electoral constituency. The combined stepwise-glmnet model predicts that PH's vote share will shrink in GE-16. 
 
 We note that the number of seats that PH can expect to win is only **`r safe_seats`** out of the 222 total seats in parliament, down from `r ph_ge_15` in GE-15. 
 
@@ -1178,6 +1062,8 @@ These predictions also underscore the instability of the Madani government's coa
 There are a fair number of marginal seats where PH received less than 40% of the votes in GE-15, but were still won by PH (many of these were three-cornered fights). These are all vulnerable for pickup by BN or PN. 
 
 <br>
+
+
 
 ```{r results-coalition}
 #| out-width: 100%
@@ -1285,11 +1171,12 @@ Let's use the same combination of stepwise linear modelling and glmnet to examin
 
 According to the model, BN is expected to lose even more ground to PN in the upcoming 16th general election, making further inroads into Johor, Pahang and Perak. BN may be largely dependent on its competitiveness in East Malaysia to keep the coalition afloat. 
 
-In the plot below, negative values on the y-axis indicate PN winning more votes than BN. We note that the model predicts PN winning more votes than BN in almost all the constituencies that BN won in GE-15. 
+In the plot below, negative values on the y-axis indicate Perikatan winning more votes than Barisan. We note that the model predicts PN winning more votes than BN in almost all the constituencies that BN won in GE-15. 
 
 Clustered at `x = 0` are the constituencies where BN and PN were closest to each other in number of votes: these are the constituencies where they are most competitive (with each other) and not competitive at all (likely losing by a large margin to PH or another coalition). 
 
 <br>
+
 
 
 ```{r results-bn-pn}
@@ -1337,7 +1224,7 @@ pred_pn_bn_coalition <- pn_bn_results |>
   scale_y_continuous(labels = percent, breaks = seq(-1, 1, .1)) +
   labs(colour = "Winning\ncoalition\nin GE15", 
        x = "% Difference between BN and PN votes in GE-15", 
-       y = "Projected % Difference between BN and PN votes in GE-16", 
+       y = "Projected % difference between BN and PN votes in GE-16", 
        title = "Projected difference in BN and PN votes vs. actual difference", 
        subtitle = "Mouse over for details; drag and click to select and zoom; double-click legend select/deselect")
 
@@ -1445,9 +1332,11 @@ pn_ge_15 <- ballots |>
   pull(count)
 ```
 
-Perikatan Nasional is predicted to be be largest coalition in parliament in 2016. Using the same combination of models as before, we predict that PN will win **`r pn_safe_seats`** out of the 222 seats in parliament, up from `r pn_ge_15` in GE-15, making further inroads into Selangor, Johor and Melaka. 
+Perikatan Nasional is predicted to be be largest coalition in parliament in 2016. Using the same combination of stepwise and glmnet models as before, we predict that PN will win **`r pn_safe_seats`** out of the 222 seats in parliament, up from `r pn_ge_15` in GE-15, making further inroads into Selangor, Johor and Melaka. Perikatan remains uncompetitive in East Malaysia. 
 
 <br>
+
+
 
 ```{r plotting-pn-results}
 #| out-width: 100%
@@ -1496,9 +1385,11 @@ The model does not predict, however, an outright win. And Perikatan Nasional wil
 
 # Conclusions
 
-We predict that UMNO (BN) will once again play kingmaker. But depending on the scale of their losses, it is possible that their only choice will be Perikatan Nasional as they might not have sufficient seats to from a government with Pakatan Harapan if PH wins only `r safe_seats` as predicted. 
+Perikatan Nasional are anticipated to win **`r pn_safe_seats`** seats, whilst Pakatan Harapan are anticipated to only win **`r safe_seats`** seats. If this holds, UMNO (BN) will once again play kingmaker, though depending on the scale of their losses, it is possible that their only choice will be Perikatan Nasional as they might not have sufficient seats to re-form the Madani government. 
 
-If we take a look at the most marginal seats, BN's largest competitors are PH and PN. If support for BN to further erode, as we predict, PH would no longer be sure to win in three-cornered fights (where it has picked up most of its post-2018 wins), especially if Malay voters are consolidated behind PN. 
+The models we developed highlight the electoral challenges facing Barison: whilst it may be more competitive than Perikatan in areas that are more ethnically diverse, it will still likely lose those areas to Paktan Harapan. It may be more competitive in East Malaysia, but support there has swung towards native and indigeneous coalitions. And whilst it can still win largely homogeneous Malay communitities, these constituencies tend to be extremely small in terms of population. 
+
+If we take a look at the most marginal seats, BN's largest competitors are PH and PN. If support for BN to further erode and Malay voters continue to consolidate behind PN, as we predict, PH would no longer be sure to win in three-cornered fights (where it has picked up most of its post-2018 wins). 
 
 <br>
 
@@ -1579,7 +1470,7 @@ ballots |>
 
 <br>
 
-However, the margin by which PH (and its predecessor PR) has won has been trending downwards. And its footprint is narrowing, especially with one its key component parties, PKR, focusing on [safe seats](https://www.freemalaysiatoday.com/category/nation/2026/04/16/avoiding-weak-seats-a-realistic-strategy-says-analyst). It seems that they too are predicting losses for PH and are seeking to minimise the extent of their defeat.  
+However, the margin by which PH has won has been trending downwards, especially in contrast to its predecessor, Pakatan Rakyat. Its footprint is also narrowing, especially with one its key component parties, PKR, focusing on [safe seats](https://www.freemalaysiatoday.com/category/nation/2026/04/16/avoiding-weak-seats-a-realistic-strategy-says-analyst). It seems that they too are predicting losses for PH and are seeking to minimise the extent of their defeat.  
 
 <br>
 
@@ -1607,17 +1498,17 @@ ballots |>
 
 <br>
 
-[James Chin](https://www.commonwealthroundtable.co.uk/commonwealth/eurasia/malaysia/research-article-anwars-long-walk-to-power-the-2022-malaysian-general-elections/) at the Commonwealth Roundtable argues that there is no longer any middle ground left in Malaysian politics, with the DAP on one end and PAS on the other. This erosion of the middle ground will have a profound impact on Pakatan Harapan's election chances, especially as it refuses to engage in the Islamisation race or put forward an alternative vision that can win over Malay youth. 
+[James Chin](https://www.commonwealthroundtable.co.uk/commonwealth/eurasia/malaysia/research-article-anwars-long-walk-to-power-the-2022-malaysian-general-elections/) at the Commonwealth Roundtable argues that there is no longer any middle ground left in Malaysian politics, with the DAP (Pakatan) on one end and PAS (Perikatan) on the other. This erosion of the middle ground will have a profound negative impact on Pakatan Harapan's election chances, especially as it refuses to engage in the Islamisation race or put forward an alternative vision that can win over Malay youth. 
 
-The cresting convergence of the two social cleavages of race and religion, as well as UMNO's downfall have made it most probable that Perikatan Nasional will be the largest coalition in parliament. 
+The cresting convergence of the two social cleavages of race and religion, as well as UMNO's downfall, has made it most probable that Perikatan Nasional will be the largest coalition in parliament. 
 
 
 <br><br><br>
 
 
+# Appendices
 
-
-# Data 
+## Data 
 
 The data for this report comes primarily from  [Thevesh](https://github.com/Thevesh/paper-meco-results/tree/main), who compiled the *Malaysian Election Corpus*, containing federal and state-level election results since 1955. 
 
@@ -1625,9 +1516,80 @@ Additional data, including the digitised census datasets, come from [JJean95](ht
 
 In this analysis, we have used constituency populations as opposed to the number of voters because MPs represent all peoples within their constituencies, not just electors. 
 
+
+<br><br><br>
+
+## Models
+
+Below is a summary of the stepwise model used to predict Pakatan Harapan's performance in GE-16. The population density and percentage of Indians in a constituency (`pc_indian`) both have positive correlation with PH electoral performance. The percentage of Bumiputeras (either peninsula or East Malaysian) have a negative correlation with electoral performance. 
+
+<br>
+
+```{r stepwise-summary-ph}
+stepwise_model |> summary()
+```
+<br>
+
+These are the coefficients for the final glmnet model used to predict Pakatan Harapan's performance in GE-16. Somewhat similarly to the stepwise model, the percentage of Indians and Chinese in a constituency have both strong positive correlations with PH electoral performance, as does the population density. 
+
+The predicted values of these two models were averaged to obtain the final predictions. 
+
+<br>
+
+```{r glmnet-coef-ph}
+coef(glmnet_model$finalModel, s = glmnet_model$bestTune$lambda)
+```
+<br>
+
+Below is the summary of the stepwise model used to predict Perikatan Nasional's election performance. It is immediately apparent that the model is much more complex than what was needed to predict Pakatan Harapan's performance. 
+
+The percentage of Chinese in a constituency has the strongest negative correlation with PN performance, followed by the percentage of East Malaysia Bumis. The negative correlation with the percentage of peninsula Bumis might indicate that homogeneous Malay constituencies still have a tendency to vote for UMNO (though its t-value is comparatively lower). 
+
+There are also negative correlations with average income (indicating more disadvantaged areas are more likely to vote for PN) as well with the sex ratio. 
+
+<br>
+
+```{r summary-stepwise-pn}
+stepwise_model_pn |>  summary()
+```
+<br>
+
+Similar to the stepwise model, Perikatan's glmnet model is also more complex than Pakatan's. But the most notable coefficients are once again the negative correlations with the Chinese and East Malaysian Bumiputera populations (highlighting the racialised nature of elections as well as PN's uncompetitiveness in East Malaysia). 
+
+<br>
+
+```{r coef-glmnet-pn}
+coef(glmnet_model_pn$finalModel, s = glmnet_model_pn$bestTune$lambda)
+```
+<br>
+
+As with the Pakatan Harapan model, the predictions for both the Perikatan models were averaged to provide the final predictions. 
+
+Finally, below is the stepwise model used to predict the difference between Barisan and Perikatan vote shares. We see that Barisan is more likely to win less dense areas (BN is the primary beneficiary of malapportionment, as we noted in [part one](https://aimdata-labs.github.io/malaysian_elections/)), as well in areas that were more ethnically diverse. Additionally, BN is more likely to win in areas that have higher incomes and more men than women. 
+
+<br>
+
+```{r summary-stepwise-bp}
+stepwise_model_bp |>  summary()
+```
+<br>
+
+Similarly, the glmnet model indicates that BN is more likely to win in areas that are more ethnically diverse and those which have higher incomes, as well as in East Malaysia. 
+
+<br>
+
+```{r coef-glmnet-bp}
+coef(glmnet_model_bp$finalModel, s = glmnet_model_bp$bestTune$lambda)
+```
+
+<br>
+
+Ultimately, these models highlight the electoral challenges faces Barisan: whilst it may be more competitive than Perikatan in areas that are more ethnically diverse, it will still likely lose those seats to Pakatan Harapan. It may be more competitive in East Malaysia, but support there has swung towards native and indigenous coalitions. And whilst it can still win largely homogeneous Malay communities, these constituencies tend to be extremely small in terms of population. 
+
 We could very conceivably improve these predictions if we had access to additional small-area demographic data, such as education levels as well as a breakdown of the population by religion. 
 
 <br><br><br>
+
 
 
 # References
@@ -1642,6 +1604,8 @@ Chin, J. (2023) Anwar’s long walk to power: the 2022 Malaysian general
 elections, The Round Table, 112:1, 1-13, DOI: 10.1080/00358533.2023.2165303
 
 JJean95 (2022). *Malaysia General Election Results (GE12-GE15)*. https://www.kaggle.com/datasets/jjean95/malaysia-general-election-datasets
+
+Law Y. F. & Mohamad Zaini Abu Bakar (2025). The Dynamics of New Multi-Ethnic Political Parties in Malaysia with Special Reference to Parti Bangsa Malaysia (PBM). *Asian Journal of Research in Education and Social Sciences*, 7(8) 537-545. https://doi.org/10.55057/ajress.2025.7.8.44. Retrieved from https://mysitasi.mohe.gov.my/uploads/get-media-file?refId=f7b5ff9d-7a8a-416a-baad-b5c84b43e4a2
 
 Loh, J. (2023). *Malaysia Census Demographic 2020*. https://www.kaggle.com/datasets/janeloh/malaysia-census-demographic-2020
 
