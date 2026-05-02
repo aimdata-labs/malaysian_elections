@@ -976,7 +976,8 @@ modifier1 <- ballots |>
 
 modifier2 <- ballots |> 
   filter(coalition == "PH") |>
-  # Modifier for the full dataset 
+  # Modifier for the full dataset
+  # Basically just the chance of PH winning
     mutate(ph_win = ifelse(result %in% c("won", "won_uncontested"), 1, 0)) %>% 
   lm(ph_win ~ votes_perc, data = .) |> 
   summary() |> 
@@ -1387,7 +1388,7 @@ The model does not predict, however, an outright win. And Perikatan Nasional wil
 
 # Conclusions
 
-Perikatan Nasional are anticipated to win **`r pn_safe_seats`** seats, whilst Pakatan Harapan are anticipated to only win **`r safe_seats`** seats. To have any chance at being the largest coalition, Pakatan must win all of Selangor and extend its reach into Johor and Pahang -- an unlikely occurrence. 
+Perikatan Nasional are anticipated to win **`r pn_safe_seats`** seats, whilst Pakatan Harapan are anticipated to only win **`r safe_seats`** seats. To have any chance at being the largest coalition, Pakatan must win all of Selangor and extend its reach into Johor and Pahang -- an unlikely prospect.  
 
 It is possible to re-form the Madani government. But depending on the scale of their losses and the scale of PN's victory, it might be more politically popular for BN to 
 
@@ -1451,7 +1452,7 @@ ph_pn_plot <- testing_preds |>
   labs(title = "Interactive plot of Pakatan vs. Perikatan projected vote % by constituency", 
        x = "Projected Pakatan %", 
        y = "Projected Perikatan %", 
-       colour = "Projected\nwinner,", 
+       colour = "Projected\nwinner", 
        group = "GE-15 winner") + 
   guides(colour = guide_legend(order = 1), 
          group = guide_legend(order = 2))
