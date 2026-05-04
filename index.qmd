@@ -255,6 +255,150 @@ tribble(
 
 <br>
 
+```{r}
+gdp_district <- read_csv("./data/gdp_district_real_supply_yoy.csv") |> 
+  mutate(sector = case_when(
+    sector == "p0" ~ "all", 
+    sector == "p1" ~ "agriculture", 
+    sector == "p2" ~ "mining", 
+    sector == "p3" ~ "manufacturing", 
+    sector == "p4" ~ "construction", 
+    sector == "p5" ~ "services"
+  )) 
+
+# Sarawak makes this all one giant mess
+gdp_district |> 
+  filter(sector == "all" & date == "2020-01-01") |>
+  mutate(economic_district = district) |> 
+  
+  mutate(district = case_when(
+    economic_district == "Tangkak" & state == "Johor" ~ "Ledang", 
+    economic_district == "Kulim" & state == "Kedah" ~ "Kulim-Bandar Baharu", 
+    economic_district == "Kota Setar" & state == "Kedah" ~ "Alor Setar",
+    economic_district == "Kuala Muda" & state == "Kedah" ~ "Sungai Petani", 
+    economic_district == "Kulim" & state == "Kedah" ~ "Kulim-Bandar Baharu", 
+    economic_district == "Yan" & state == "Kedah" ~ "Jerai", 
+    economic_district == "Kecil Lojing" ~ "Gua Musang", 
+    economic_district %in% c("Asajaya", "Samarahan") ~ "Kota Samarahan", 
+    economic_district %in% c("Bau", "Lundu") ~ "Sepanggar", 
+    TRUE ~ economic_district
+  )) |> 
+  # This is for all the small districts in Sarawak
+  # Maybe leftjoin the district back in
+  group_by(economic_district, )
+  select(economic_district, district, state) |> 
+  right_join(
+    census_fed |> 
+      mutate(district = str_sub(parlimen, start = 7L)) |> 
+      distinct(state, district, parlimen), 
+    by = c("state", "district")) |>
+  mutate(economic_district = case_when(
+    state == "Perlis" ~ "Perlis", 
+    district == "Jerlun" ~ "Kubang Pasu", 
+    district == "Kuala Kedah" ~ "Kota Setar", 
+    district == "Merbok" ~ "Kuala Muda", 
+    district == "Padang Serai" ~ "Kulim", 
+    district == "Pengkalan Chepa" ~ "Kota Bharu", 
+    district == "Rantau Panjang" ~ "Pasir Mas",
+    district == "	Kubang Kerian" ~ "Kota Bharu", 
+    district == "Ketereh" ~ "Kota Bharu", 
+    district == "Kepala Batas" ~ "Seberang Perai Utara", 
+    district == "Tasek Gelugor" ~ "Seberang Perai Utara", 
+    district == "Bagan" ~ "Seberang Perai Utara",
+    district == "Permatang Pauh" ~ "Seberang Perai Tengah",
+    district == "Bukit Mertajam" ~ "Seberang Perai Tengah",
+    # Part of Batu Kawan in Selatan
+    district == "Batu Kawan" ~ "Seberang Perai Tengah",
+    district == "Nibong Tebal" ~ "Seberang Perai Selatan",
+    district == "Bukit Bendera" ~ "Timur Laut",
+    district == "Tanjong" & state == "Pulau Pinang" ~ "Timur Laut",
+    district == "Jelutong" & state == "Pulau Pinang" ~ "Timur Laut",
+    district == "Bukit Gelugor" & state == "Pulau Pinang" ~ "Timur Laut",
+    district == "Bayan Baru" & state == "Pulau Pinang" ~ "Barat Daya",
+    district == "Balik Pulau" & state == "Pulau Pinang" ~ "Barat Daya",
+    district == "Gerik" & state == "Perak" ~ "Hulu Perak", 
+    district == "Lenggong" & state == "Perak" ~ "Hulu Perak",
+    district == "Larut" & state == "Perak" ~ "Selama",
+    district == "Parit Buntar" & state == "Perak" ~ "Perak Tengah",
+    district == "Bagan Serai" & state == "Perak" ~ "Kerian",
+    district == "Bukit Gantang" & state == "Perak" ~ "Larut Dan Matang",
+    district == "Taiping" & state == "Perak" ~ "Larut Dan Matang",
+    district == "Padang Rengas" & state == "Perak" ~ "Kuala Kangsar",
+    district == "Sungai Siput" & state == "Perak" ~ "Kuala Kangsar",
+    district == "Tambun" & state == "Perak" ~ "Kinta",
+    district == "Ipoh Timor" & state == "Perak" ~ "Kinta",
+    district == "Ipoh Barat" & state == "Perak" ~ "Kinta",
+    district == "Batu Gajah" & state == "Perak" ~ "Kinta",
+    district == "Gopeng" & state == "Perak" ~ "Kinta",
+    district == "Beruas" & state == "Perak" ~ "Manjung",
+    district == "Parit" & state == "Perak" ~ "Perak Tengah",
+    district == "Tapah" & state == "Perak" ~ "Batang Padang",
+    district == "Pasir Salak" & state == "Perak" ~ "Perak Tengah",
+    district == "Lumut" & state == "Perak" ~ "Bagan Datuk",
+    district == "Teluk Intan" & state == "Perak" ~ "Hilir Perak",
+    district == "Tanjong Malim" & state == "Perak" ~ "Muallim",
+    district == "Indera Mahkota" & state == "Pahang" ~ "Kuantan",
+    district == "Paya Besar" & state == "Pahang" ~ "Kuantan",
+    district == "Kuala Krau" & state == "Pahang" ~ "Temerloh",
+    district == "Hulu Selangor" & state == "Selangor" ~ "Ulu Selangor",
+    district == "Hulu Langat" & state == "Selangor" ~ "Ulu Langat",
+    district == "Tanjong Karang" & state == "Selangor" ~ "Kuala Selangor",
+    district == "Selayang" & state == "Selangor" ~ "Gombak",
+    district == "Ampang" & state == "Selangor" ~ "Ulu Langat",
+    district == "Bangi" & state == "Selangor" ~ "Ulu Langat",
+    district == "Pandan" & state == "Selangor" ~ "Ulu Langat",
+    district == "Puchong" & state == "Selangor" ~ "Petaling",
+    district == "Subang" & state == "Selangor" ~ "Petaling",
+    district == "Petaling Jaya" & state == "Selangor" ~ "Petaling",
+    district == "Damansara" & state == "Selangor" ~ "Petaling",
+    district == "Sungai Buloh" & state == "Selangor" ~ "Petaling",
+    district == "Shah Alam" & state == "Selangor" ~ "Klang",
+    district == "Kota Raja" & state == "Selangor" ~ "Klang",
+    district == "Masjid Tanah" & state == "Melaka" ~ "Alor Gajah",
+    district == "Tangga Batu" & state == "Melaka" ~ "Melaka Tengah",
+    district == "Hang Tuah Jaya" & state == "Melaka" ~ "Melaka Tengah",
+    district == "Kota Melaka" & state == "Melaka" ~ "Melaka Tengah",
+    district == "Rasah" & state == "Negeri Sembilan" ~ "Seremban",
+    district == "Sekijang" & state == "Johor" ~ "Segamat",
+    district == "Labis" & state == "Johor" ~ "Segamat",
+    district == "Pagoh" & state == "Johor" ~ "Muar",
+    district == "Parit Sulong" & state == "Johor" ~ "Batu Pahat",
+    district == "Ayer Hitam" & state == "Johor" ~ "Batu Pahat",
+    district == "Sri Gading" & state == "Johor" ~ "Batu Pahat",
+    district == "Simpang Renggam" & state == "Johor" ~ "Kluang",
+    district == "Sembrong" & state == "Johor" ~ "Kluang",
+    district == "Tenggara" & state == "Johor" ~ "Kota Tinggi",
+    district == "Pengerang" & state == "Johor" ~ "Kota Tinggi",
+    district == "Tebrau" & state == "Johor" ~ "Johor Bahru",
+    district == "Pasir Gudang" & state == "Johor" ~ "Johor Bahru",
+    district == "Iskandar Puteri" & state == "Johor" ~ "Johor Bahru",
+    district == "Pulai" & state == "Johor" ~ "Kulai",
+    district == "Tanjung Piai" & state == "Johor" ~ "Pontian",
+    district == "Sepanggar" & state == "Sabah" ~ "Kota Kinabalu",
+    district == "Kimanis" & state == "Sabah" ~ "Papar",
+    district == "Pensiangan" & state == "Sabah" ~ "Nabawan",
+    district == "Libaran" & state == "Sabah" ~ "Sandakan",
+    district == "Batu Sapi" & state == "Sabah" ~ "Sandakan",
+    district == "Santubong" & state == "Sarawak" ~ "Kuching",
+    district == "Bandar Kuching" & state == "Sarawak" ~ "Kuching",
+    district == "Stampin" & state == "Sarawak" ~ "Kuching",
+    
+    TRUE ~ economic_district
+  ))
+  filter(is.na(economic_district))
+```
+
+```{r}
+census_dun |> 
+  filter(str_detect(dun, "Kota Setar"))
+
+#Sarawak is so messy, I don't want to do it now
+gdp_district |>
+  filter(state == "Sarawak" & sector == "all" & date == "2020-01-01" & series == "growth_yoy")
+  
+```
+
+
 Read the addendum on malapportionment [here](https://aimdata-labs.github.io/malaysian_elections/part_two.html). 
 
 # Introduction: racialisation of elections
@@ -390,9 +534,9 @@ ballots |>
 
 <br>
 
-The coalition which benefited primarily from this racialised dimension to elections has been Barisan Nasional. 
+Barisan Nasional and, to a lesser extent, Perikatan Nasional have been the primary beneficiaries of this racialised dimension to elections. 
 
-Almost all of BN's electoral wins come from constituencies which are more than 75% Bumiputera. This is the same for Perikatan Nasional. Conversely, constituencies which are more than 75% Bumiputera almost never vote for parties under the Pakatan Harapan coalition (or its predecessor Pakatan Rakyat). 
+Almost all of BN's electoral wins come from constituencies which are more than 75% Bumiputera. This is the same for Perikatan Nasional. Similarly, constituencies which are more than 75% Bumiputera almost never vote for parties under the Pakatan Harapan coalition (or its predecessor Pakatan Rakyat). 
 
 <br>
 
@@ -448,7 +592,7 @@ A significant minority of non-Bumiputera MPs were from BN. Additionally, most of
 
 # Ethnic makeup of parties and coalitions
 
-Amongst the various coalitions, East Malysian Coalitions and Gagasan Sejahtera were the most racially homogeneous. Proportionally, Pakatan Harapan and Pakatan Rakyat both fielded more Malay candidates than Barisan Nasional. 
+Amongst the various coalitions, East Malysian Coalitions and Gagasan Sejahtera were the most racially homogeneous. Interestingly, Pakatan Harapan and Pakatan Rakyat both fielded proportionally more Malay candidates than Barisan Nasional. 
 
 However, as noted by [Azzubair, Kartini and Nazri](https://www.frontiersin.org/journals/political-science/articles/10.3389/fpos.2026.1721966/full), whilst BN might be multiethnic in nature, the coalition was not consociational, but was "sustained more by UMNO’s control and patronage than by genuine power-sharing". 
 
@@ -484,9 +628,7 @@ ballots |>
 
 <br>
 
-The plot below shows the breakdown of candidates by ethnicity and party. Amanah, Bersatu, PAS and UMNO are Malay parties; DAP, Gerakan and the MCA are Chinese parties. The MIC is an Indian party, PBB is a Sabahan party and WARISAN is a Sarawakian party. 
-
-BEBAS and PKR are the only true multiracial parties, with all other parties being dominated by a main ethnic group. 
+The plot below shows the breakdown of candidates by ethnicity and party. Amanah, Bersatu, PAS and UMNO are Malay parties; DAP, Gerakan and the MCA are Chinese parties. The MIC is an Indian party, PBB is a Sabahan party and WARISAN is a Sarawakian party. BEBAS and PKR are the only true multiracial parties. 
 
 However, despite having representation from all major ethnicities, the idea of a multiracial Malaysia nation (*Bangsa Malaysia*) has failed at a cultural-cognitive level, with [Law and Zaini](https://mysitasi.mohe.gov.my/uploads/get-media-file?refId=f7b5ff9d-7a8a-416a-baad-b5c84b43e4a2) arguing that this ideology is neither internalised nor taken for granted. One academic expert in their study states, "[Malaysians] fall back on primordial identity... no one identifies himself or herself as Bangsa Malaysia". They ultimately conclude that "moments of public disillusionment with identity politics are insufficient to overturn deep-seated institutional [inequality]". 
 
@@ -587,7 +729,7 @@ ballots |>
 ```
 <br>
 
-However, when we examine their share of votes, we see that their parliamentary dominance was always more fragile than was perceived. At no time after 1960 did UMNO ever win more than 40% of the votes. Additionally, the Badawi peak of `r filter(ballots, election == "GE-11" & result %in% c("won", "won_uncontested") & party == "UMNO") |> nrow()` seats was accomplished with only 35% of the national vote, highlighting the unfairness of a first-past-the-post system. Though now, both UMNO and PKR are penalised by the first-past-the-post system, whereas PAS, DAP and Bersatu are each rewarded by it. 
+However, when we examine their share of votes, we see that their parliamentary dominance was always more fragile than was perceived. At no time after 1960 did UMNO ever win more than 40% of the votes. Additionally, the Badawi peak of `r filter(ballots, election == "GE-11" & result %in% c("won", "won_uncontested") & party == "UMNO") |> nrow()` seats (49% of seats) was accomplished with only 35% of the national vote, highlighting the unfairness of a first-past-the-post system. Though now, both UMNO and PKR are penalised by the first-past-the-post system,. 
 
 Finally, though their share of votes is lower than it has ever been, UMNO still, marginally, received more votes than any other party in the most recent general election. 
 
@@ -630,7 +772,7 @@ ballots |>
 
 Echoing Deivasagayam's arguments, [Syaza](https://www.iseas.edu.sg/wp-content/uploads/2024/04/TRS12_24.pdf) concludes that "the sense of Islamic identity and belonging often supersedes the allure of economic development for Malay youths when choosing how to cast their vote". 
 
-This speaks to not only to the Islamisation race that UMNO, PAS and Bersatu have engaged in -- 65% of respondents in a Merdeka Centre Muslim Youth Survey saying that Muslims should only vote for Muslim leaders -- but also to an unfair economic system where whatever economic boons offered are too meagre and piecemeal, and insufficient to overcome racial and religious identity politics.
+This speaks to not only to the Islamisation race that UMNO, PAS and Bersatu have engaged in -- [Syaza](https://www.iseas.edu.sg/wp-content/uploads/2024/04/TRS12_24.pdf) reports that 65% of respondents in a Merdeka Center Muslim Youth Survey saying that Muslims should only vote for Muslim leaders -- but also to an unfair economic system where whatever economic boons offered are too meagre and piecemeal, and insufficient to overcome racial and religious identity politics despite economic concerns being the [top issue](https://merdeka.org/mid-term-survey-may-2025-report-final/) amongst voters. 
 
 Pakatan Harapan, furthermore, seems unwilling to engage in the Islamisation Race or put forward a competing vision of a more moderate Islam, possibly -- I hypothesise -- out of fears that doing so would simultaneously alienate its core non-Muslim base and anger conservative Muslims.
 
@@ -711,7 +853,7 @@ ballots |>
 
 The plots below show vote share amongst the major coalitions in state elections. We see that that PN has managed to garner a lead over PH in state polls. 
 
-Recalling our earlier criticism of Anwar in [part one](https://aimdata-labs.github.io/malaysian_elections/), is his bid with GRS to increase the number of seats in Sabah meant to engineer a more lasting parliamentary majority without needing to win the popular vote? We emphasise again that any further malapportionment would be, ultimately, an anti-democratic exercise. 
+Recalling our criticism of Anwar in the [addendum on malapportionment](https://aimdata-labs.github.io/malaysian_elections/), is his bid with GRS to increase the number of seats in Sabah meant to engineer a more lasting parliamentary majority without needing to win the popular vote? We would emphasise that any further malapportionment would be, ultimately, an anti-democratic exercise. 
 
 <br>
 
@@ -958,7 +1100,7 @@ rss_glm <- sum((testing_preds$pc_ph_votes - testing_preds$glmnet_pred)^2)
 1 - rss_glm / tss
 ```
 
-In this section, we will try and predict Pakatan Harapan's performance (in this case, the percentage of votes we anticipate them to receive) in the upcoming general election. 
+Let's now predict Pakatan Harapan's performance in the upcoming general election (in this case, the percentage of votes we anticipate them to receive). 
 
 
 ```{r ph-safe-seats}
@@ -1009,7 +1151,7 @@ ph_ge_15 <- ballots |>
 ```
 
 
-Below, the performance of PH is GE-15 is plotted against their predicted performance in GE-16, with each point being a federal electoral constituency. The combined stepwise-glmnet model predicts that PH's vote share will shrink in GE-16. 
+Below, the performance of PH in GE-15 is plotted against their predicted performance in GE-16, with each point being a federal electoral constituency. The combined stepwise-glmnet model predicts that PH's vote share will shrink in GE-16. 
 
 We note that the number of seats that PH can expect to win is only **`r safe_seats`** out of the 222 total seats in parliament, down from `r ph_ge_15` in GE-15. 
 
@@ -1153,6 +1295,8 @@ glmnet_model_bp <- train(
 )
 ```
 
+
+
 ```{r preds-bn-pn}
 preds_pn_bn <- pn_bn_test %>%
   mutate(
@@ -1169,9 +1313,9 @@ pn_bn_results <- pn_bn_test |>
 
 ```
 
-Let's use the same combination of stepwise linear modelling and glmnet to examine to see how well we can predict the performance of Barisan Nasional against Perikatan Nasional. 
+Let's use the same combination of stepwise linear modelling and glmnet to predict the performance of Barisan Nasional against Perikatan Nasional. 
 
-According to the model, BN is expected to lose even more ground to PN in the upcoming 16th general election, making further inroads into Johor, Pahang and Perak. BN may be largely dependent on its competitiveness in East Malaysia to keep the coalition afloat. 
+According to the model, BN is expected to lose even more ground to PN in the upcoming 16th general election, making further inroads into Johor, Pahang and Perak. BN will be largely dependent on its competitiveness in East Malaysia to ensure that it has any representation in parliament. 
 
 In the plot below, negative values on the y-axis indicate Perikatan winning more votes than Barisan. We note that the model predicts PN winning more votes than BN in almost all the constituencies that BN won in GE-15. 
 
@@ -1388,14 +1532,95 @@ The model does not predict, however, an outright win. And Perikatan Nasional wil
 
 # Conclusions
 
-Perikatan Nasional are anticipated to win **`r pn_safe_seats`** seats, whilst Pakatan Harapan are anticipated to only win **`r safe_seats`** seats. To have any chance at being the largest coalition, Pakatan must win all of Selangor and extend its reach into Johor and Pahang -- an unlikely prospect.  
+Perikatan Nasional are anticipated to win **`r pn_safe_seats`** seats, whilst Pakatan Harapan are anticipated to only win **`r safe_seats`** seats. However, there is only a very small difference in PH's and PN's shares of the national vote. Though, to have a chance at being the largest coalition, Pakatan must win all of Selangor and extend its reach into Johor and Pahang -- an unlikely prospect. 
 
-It is possible to re-form the Madani government. But depending on the scale of their losses and the scale of PN's victory, it might be more politically popular for BN to 
+<br>
 
-UMNO (BN) might still be able to play kingmaker, though depending on their losses and the scale of PN's victory, all other coalitions would need to join with Pakatan, 
 
-If this holds, UMNO (BN) will once again play kingmaker, though depending on the scale of their losses, it is possible that their only choice will be Perikatan Nasional as they might not have sufficient seats to re-form the Madani government. 
+```{r projected-national-vote-share-seats, fig.height=4}
 
+testing_preds |> 
+  left_join(
+    ballots |> 
+      filter(election == "GE-15" & result %in% c("won", "won_uncontested")) |> 
+      select(state, seat, coalition), 
+    by = c("parlimen" = "seat")
+  ) |> 
+  select(proj_ph_vote, parlimen) |> 
+  left_join(
+    pn_test |>
+      left_join(
+        ballots |>
+          filter(election == "GE-15" &
+                   result %in% c("won", "won_uncontested")) |>
+          select(seat, coalition),
+        by = c("parlimen" = "seat"))
+  ) |> 
+  mutate(proj_ph_vote_number = proj_ph_vote * total_votes, 
+         proj_pn_vote_number = proj_pn_vote * total_votes) |> 
+  summarise_at(vars(proj_ph_vote_number, 
+                    proj_pn_vote_number, 
+                    total_votes), 
+               ~ sum(.x)) |> 
+  mutate(Other = total_votes - proj_ph_vote_number - proj_pn_vote_number) |> 
+  pivot_longer(everything()) |> 
+  mutate(total_votes = max(value)) |> 
+  mutate(pc = value / total_votes, 
+         name = case_when(
+           name == "proj_ph_vote_number" ~ "Pakatan Harapan", 
+           name == "proj_pn_vote_number" ~ "Perikatan Nasional", 
+           TRUE ~ name), 
+         pc = round(pc * 100, 2)) |> 
+  filter(name != "total_votes") |> 
+  select(name, pc) |>
+  mutate(name = fct_relevel(name, 
+                            c("Pakatan Harapan",
+                              "Perikatan Nasional",
+                              "Other"))) |> 
+  ggplot(aes(x = pc, y = fct_rev(name))) + 
+  geom_col(aes(fill = name)) + 
+  geom_text(aes(label = paste0(pc, "%")), 
+            hjust = "inward", 
+            colour = "white") +
+  scale_fill_viridis_d(option = "magma", begin = .1, end = .9, direction = -1) +
+  theme(legend.position = "none", 
+        strip.background = element_rect(fill = "grey20")) +
+  labs(x = "Vote share (%)", 
+       y = "", 
+       fill = "", 
+       title = "Predicted vote shares") +
+  
+tribble(
+      ~name, ~seats, 
+      "Pakatan Harapan", 72, 
+      "Perikatan Nasional", 95,
+      "Other", 55
+    ) |> 
+  mutate(name = fct_relevel(name, 
+                            c("Pakatan Harapan",
+                              "Perikatan Nasional",
+                              "Other"))) |> 
+  ggplot(aes(x = seats, y = fct_rev(name))) + 
+  geom_col(aes(fill = name)) + 
+  geom_text(aes(label = seats), 
+            hjust = "inward", 
+            colour = "white") +
+  scale_fill_viridis_d(option = "magma", begin = .1, end = .9, direction = -1) +
+  theme(legend.position = "none", 
+        strip.background = element_rect(fill = "grey20"), 
+        axis.text.y = element_blank()) +
+  labs(x = "Number of seats", 
+       y = "", 
+       fill = "", 
+       title = "Predicted number of seats") + 
+  
+  plot_annotation(title = "Predictions for GE-16")
+
+```
+
+<br>
+
+It might not be possible to re-form the Madani government. This is dependent on the scale of BN's losses and the scale of PN's victory. We were not able to develop a model that accurately predicted BN's district-level vote share using demographic data, probably due to BN's performance being largely determined by non-demographic factors (i.e. running a particularly strong candidate in Titiwangsa or the strengthening of unfavourable perceptions of the coalition). It is possible that they will not even be in a position to play kingmaker, especially if our predictions about their poor performance against Perikatan hold true. 
 
 
 <br>
@@ -1467,9 +1692,7 @@ ggplotly(ph_pn_plot, tooltip = c("text")) |>
 
 <br>
 
-The models we developed also highlight the electoral challenges facing Barisan: whilst it may be more competitive than Perikatan in areas that are more ethnically diverse, it will still likely lose those seats to Pakatan Harapan. It may be more competitive in East Malaysia, but support there has swung towards native and indigenous coalitions. And whilst it can still win largely homogeneous Malay communities, these constituencies tend to be extremely small in terms of population. 
-
-If we take a look at the most marginal seats, BN's largest competitors are PH and PN. If support for BN to further erode and Malay voters continue to consolidate behind PN, as we predict, PH would no longer be sure to win in three-cornered fights (where it has picked up most of its post-2018 wins). 
+The models (the details of which are in the appendices below) we developed also highlight the electoral challenges facing Barisan: whilst it may be more competitive than Perikatan in areas that are more ethnically diverse, it will still likely lose those seats to Pakatan Harapan. It may be more competitive in East Malaysia, but support there has swung towards native and indigenous coalitions. And whilst it can still win largely homogeneous Malay communities, these constituencies tend to be extremely small in terms of population. 
 
 <br>
 
@@ -1505,6 +1728,7 @@ ballots |>
 
 <br>
 
+If we take a look at the most marginal seats from GE-15 in the plot above, BN's largest competitors are PH and PN. If support for BN to further erode and Malay voters to consolidate behind PN, as we predict, PH would no longer be sure to win in three-cornered fights (where it has picked up most of its post-2018 wins). 
 
 The primary beneficiary of three-cornered fights after the collapse of UMNO has been Pakatan Harapan.
 
@@ -1580,15 +1804,16 @@ ballots |>
 
 [James Chin](https://www.commonwealthroundtable.co.uk/commonwealth/eurasia/malaysia/research-article-anwars-long-walk-to-power-the-2022-malaysian-general-elections/) at the Commonwealth Roundtable argues that there is no longer any middle ground left in Malaysian politics, with the DAP (Pakatan) on one end and PAS (Perikatan) on the other. This erosion of the middle ground will have a profound negative impact on Pakatan Harapan's election chances, especially as it refuses to engage in the Islamisation race or put forward an alternative vision that can win over Malay youth. 
 
-The cresting convergence of the two social cleavages of race and religion, as well as UMNO's downfall, has made it most probable that Perikatan Nasional will be the largest coalition in parliament. 
+The convergence of the two social cleavages of race and religion, as well as UMNO's downfall, have made it probable that Perikatan Nasional will be the largest coalition in parliament. 
 
 
 <br><br><br>
 
-Read the addendum on malapportionment [here](https://aimdata-labs.github.io/malaysian_elections/part_two.html). 
 
 
 # Appendices
+
+Read the addendum on malapportionment [here](https://aimdata-labs.github.io/malaysian_elections/part_two.html).
 
 ## Data 
 
@@ -1596,12 +1821,12 @@ The data for this report comes primarily from  [Thevesh](https://github.com/Thev
 
 Additional data, including the digitised census datasets, come from [JJean95](https://www.kaggle.com/datasets/jjean95/malaysia-general-election-datasets?select=census_dun.csv) and [Jane Loh](https://www.kaggle.com/datasets/janeloh/malaysia-census-demographic-2020).
 
-In this analysis, we have used constituency populations as opposed to the number of voters because MPs represent all peoples within their constituencies, not just electors. 
-
 
 <br><br><br>
 
 ## Models
+
+### Pakatan Harapan models
 
 Below is a summary of the stepwise model used to predict Pakatan Harapan's performance in GE-16. The population density and percentage of Indians in a constituency (`pc_indian`) both have positive correlation with PH electoral performance. The percentage of Bumiputeras (either peninsula or East Malaysian) have a negative correlation with electoral performance. 
 
@@ -1610,6 +1835,7 @@ Below is a summary of the stepwise model used to predict Pakatan Harapan's perfo
 ```{r stepwise-summary-ph}
 stepwise_model |> summary()
 ```
+
 <br>
 
 These are the coefficients for the final glmnet model used to predict Pakatan Harapan's performance in GE-16. Somewhat similarly to the stepwise model, the percentage of Indians and Chinese in a constituency have both strong positive correlations with PH electoral performance, as does the population density. 
@@ -1621,9 +1847,12 @@ The predicted values of these two models were averaged to obtain the final predi
 ```{r glmnet-coef-ph}
 coef(glmnet_model$finalModel, s = glmnet_model$bestTune$lambda)
 ```
-<br>
 
-Below is the summary of the stepwise model used to predict Perikatan Nasional's election performance. It is immediately apparent that the model is much more complex than what was needed to predict Pakatan Harapan's performance. 
+<br><br><br>
+
+### Perikatan Nasional models
+
+The stepwise model used to predict Perikatan's election performance is more complex than what was needed to predict Pakatan Harapan's performance. 
 
 The percentage of Chinese in a constituency has the strongest negative correlation with PN performance, followed by the percentage of East Malaysia Bumis. The negative correlation with the percentage of peninsula Bumis might indicate that homogeneous Malay constituencies still have a tendency to vote for UMNO (though its t-value is comparatively lower). 
 
@@ -1647,7 +1876,13 @@ coef(glmnet_model_pn$finalModel, s = glmnet_model_pn$bestTune$lambda)
 
 As with the Pakatan Harapan model, the predictions for both the Perikatan models were averaged to provide the final predictions. 
 
-Finally, below is the stepwise model used to predict the difference between Barisan and Perikatan vote shares. We see that Barisan is more likely to win less dense areas (BN is the primary beneficiary of malapportionment, as we noted in [part one](https://aimdata-labs.github.io/malaysian_elections/)), as well in areas that were more ethnically diverse. Additionally, BN is more likely to win in areas that have higher incomes and more men than women. 
+<br><br><br>
+
+### Comparing Barisan Nasional against Perikatan Nasional
+
+Finally, below is the stepwise model used to predict the difference between Barisan and Perikatan vote shares. We see that Barisan is more likely to win less dense areas (BN is the primary beneficiary of malapportionment, as we note in our [addendum on malapportionment](https://aimdata-labs.github.io/malaysian_elections/)), as well in areas that were more ethnically diverse. Additionally, BN is more likely than PN to win in areas that have higher incomes and more men than women. 
+
+However, we should note than the r-squared is quite low, when compared to the earlier two models. BN's performance is actually quite difficult to model from demographic data. 
 
 <br>
 
@@ -1656,7 +1891,7 @@ stepwise_model_bp |>  summary()
 ```
 <br>
 
-Similarly, the glmnet model indicates that BN is more likely to win in areas that are more ethnically diverse and those which have higher incomes, as well as in East Malaysia. 
+Similarly, the glmnet model indicates that BN is more likely to get more votes than PN in areas that are more ethnically diverse and those which have higher incomes, as well as in East Malaysia. 
 
 <br>
 
@@ -1666,9 +1901,9 @@ coef(glmnet_model_bp$finalModel, s = glmnet_model_bp$bestTune$lambda)
 
 <br>
 
-Ultimately, these models highlight the electoral challenges faces Barisan: whilst it may be more competitive than Perikatan in areas that are more ethnically diverse, it will still likely lose those seats to Pakatan Harapan. It may be more competitive in East Malaysia, but support there has swung towards native and indigenous coalitions. And whilst it can still win largely homogeneous Malay communities, these constituencies tend to be extremely small in terms of population. 
+Ultimately, these models highlight the electoral challenges faces Barisan: whilst it may be more competitive than Perikatan in areas that are more ethnically diverse, it will still likely lose those seats to Pakatan Harapan. It may be more competitive in East Malaysia, but support there has swung towards native and indigenous coalitions. And whilst it can still win largely homogeneous Malay communities, these constituencies tend to be extremely small in terms of population.
 
-We could very conceivably improve these predictions if we had access to additional small-area demographic data, such as education levels as well as a breakdown of the population by religion. 
+We could very conceivably improve these predictions if we had access to additional small-area demographic and economic data, such as education levels, small-area GDP data as well as a breakdown of the population by religion. 
 
 <br><br><br>
 
@@ -1692,6 +1927,8 @@ Law Y. F. & Mohamad Zaini Abu Bakar (2025). The Dynamics of New Multi-Ethnic Pol
 Loh, J. (2023). *Malaysia Census Demographic 2020*. https://www.kaggle.com/datasets/janeloh/malaysia-census-demographic-2020
 
 Deivasagayam, A.D. (2025). Explaining UMNO's Downfall Post GE14 and GE15: The Strengthened Convergence Between Two Cleavage Systems. *Malaysian Journal of Social Sciences and Humanities*, 10(2). https://doi.org/10.47405/mjssh.v10i2.3248
+
+Merdeka Center for Opinion Research (2025, 23 June). Mid-Term Survey May 2025 Report Final. Retrieved from https://merdeka.org/mid-term-survey-may-2025-report-final/ 
 
 Nora M. (2026, 16 April). Avoiding Weak Seats a Realistic Strategy, Says Analyst. *Free Malaysia Today*. https://www.freemalaysiatoday.com/category/nation/2026/04/16/avoiding-weak-seats-a-realistic-strategy-says-analyst
 
