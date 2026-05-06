@@ -3,7 +3,7 @@ title: "Malaysian Elections"
 subtitle: "Part two: Ethnicity and Election Predictions"
 author: "Sean Ng"
 organization: "AIMdata"
-date-modified: "27 April 2026"
+date-modified: "5 May 2026"
 execute: 
   echo: false
 ---
@@ -430,11 +430,9 @@ Read the addendum on malapportionment [here](https://aimdata-labs.github.io/mala
 
 According to an [Architects of Diversity survey](https://www.aodmalaysia.org/sods), 64% of Malaysians reporting experiencing some for of discrimination in the past 12 months, with 32% saying it was related to ethnicity. 
 
-Hindus were the most likely to have experienced religious-based discrimination (40%), compared to their Christian (26%), Buddhists (22%) and Muslims (20%). 59% of Muslim respondents believe their own religious group faced a lot discrimination, with the figure being 63% amongst Buddhists, 76% amongst Christians and 81% amongst Hindus. 
+[Pusat KOMAS](https://komas.org/download/Malaysia-Racism-Report_A-Decade-In-Review-2015-2024.pdf) states that election years tend to see "sharp increases in racial discrimination narratives [...] Political parties have consistently used race and religion as mobilization tools". 
 
-[Pusat KOMAS](https://komas.org/download/Malaysia-Racism-Report_A-Decade-In-Review-2015-2024.pdf) states that election years tend to see "sharp increases in racial discrimination narratives [...] Political parties have consistently used race and religion as mobilization tools". They add, "politics accounted for just over 43% of all recorded racial discrimination incidents between 2015 and 2024" and that "racial and religious politics remain the primary diver of racial discrimination in Malaysia". 
-
-The next general election is likely to witness another surge in racial politics, particularly with PAS and Bersatu continuing to consolidate their Malay-Muslim voter bases. 
+They add, "politics accounted for just over 43% of all recorded racial discrimination incidents between 2015 and 2024" and that "racial and religious politics remain the primary diver of racial discrimination in Malaysia". The next general election is likely to witness another surge in racial politics, particularly with PAS and Bersatu continuing to consolidate their Malay-Muslim voter bases. 
 
 43% (97 out of 222 constituencies) have ever had multiethnic electoral races (where the candidates were from different races). These constituencies align largely with the areas with the highest concentrations of non-Bumiputeras. 
 
@@ -655,7 +653,7 @@ ballots |>
 
 The plot below shows the breakdown of candidates by ethnicity and party. Amanah, Bersatu, PAS and UMNO are Malay parties; DAP, Gerakan and the MCA are Chinese parties. The MIC is an Indian party, PBB is a Sabahan party and WARISAN is a Sarawakian party. BEBAS and PKR are the only true multiracial parties. 
 
-However, despite having representation from all major ethnicities, the idea of a multiracial Malaysia nation (*Bangsa Malaysia*) has failed at a cultural-cognitive level, with [Law and Zaini](https://mysitasi.mohe.gov.my/uploads/get-media-file?refId=f7b5ff9d-7a8a-416a-baad-b5c84b43e4a2) arguing that this ideology is neither internalised nor taken for granted. One academic expert in their study states, "[Malaysians] fall back on primordial identity... no one identifies himself or herself as Bangsa Malaysia". They ultimately conclude that "moments of public disillusionment with identity politics are insufficient to overturn deep-seated institutional [inequality]". 
+However, despite all coalitions having representation from all major ethnicities, the idea of a multiracial Malaysia nation (*Bangsa Malaysia*) has failed at a cultural-cognitive level, with [Law and Zaini](https://mysitasi.mohe.gov.my/uploads/get-media-file?refId=f7b5ff9d-7a8a-416a-baad-b5c84b43e4a2) arguing that this ideology is neither internalised nor taken for granted. One academic expert in their study states, "[Malaysians] fall back on primordial identity... no one identifies himself or herself as Bangsa Malaysia". They ultimately conclude that "moments of public disillusionment with identity politics are insufficient to overturn deep-seated institutional [inequality]". 
 
 
 <br> 
@@ -754,7 +752,7 @@ ballots |>
 ```
 <br>
 
-However, when we examine their share of votes, we see that their parliamentary dominance was always more fragile than was perceived. At no time after 1960 did UMNO ever win more than 40% of the votes. Additionally, the Badawi peak of `r filter(ballots, election == "GE-11" & result %in% c("won", "won_uncontested") & party == "UMNO") |> nrow()` seats (49% of seats) was accomplished with only 35% of the national vote, highlighting the unfairness of a first-past-the-post system. Though now, both UMNO and PKR are penalised by the first-past-the-post system,. 
+However, when we examine their share of votes, we see that their parliamentary dominance was always more fragile than was perceived. At no time after 1960 did UMNO ever win more than 40% of the votes. Additionally, the Badawi peak of `r filter(ballots, election == "GE-11" & result %in% c("won", "won_uncontested") & party == "UMNO") |> nrow()` seats (49% of seats) was accomplished with only 35% of the national vote, highlighting the unfairness of a first-past-the-post system. Though now, UMNO (and PKR) are penalised by the first-past-the-post system,. 
 
 Finally, though their share of votes is lower than it has ever been, UMNO still, marginally, received more votes than any other party in the most recent general election. 
 
@@ -878,7 +876,7 @@ ballots |>
 
 The plots below show vote share amongst the major coalitions in state elections. We see that that PN has managed to garner a lead over PH in state polls. 
 
-Recalling our criticism of Anwar in the [addendum on malapportionment](https://aimdata-labs.github.io/malaysian_elections/), is his bid with GRS to increase the number of seats in Sabah meant to engineer a more lasting parliamentary majority without needing to win the popular vote? We would emphasise that any further malapportionment would be, ultimately, an anti-democratic exercise. 
+Recalling our criticism of Anwar in the [addendum on malapportionment](https://aimdata-labs.github.io/malaysian_elections/), it is possible that his bid with GRS to increase the number of seats in Sabah is meant to engineer a more lasting parliamentary majority without needing to win the popular vote. We would emphasise that any further malapportionment would be, ultimately, an anti-democratic exercise. 
 
 <br>
 
@@ -915,10 +913,9 @@ ballots |>
 
 <br> 
 
-There is a stark racial component in Malaysian politics and [Syaza](https://www.iseas.edu.sg/wp-content/uploads/2024/04/TRS12_24.pdf) argues that there is a strong dichotomy between Malay and non-Malay voters' perceptions of the government. 85% of Malay voters felt that the Perikatan Nasional government protects the interest of the Malays, while 77% of non-Malay voters believed the government does not treat all races equally. This is key to understanding political choices among different ethnic groups in Malaysia, not only in the 15th General Election, but also in previous elections.
+[Syaza](https://www.iseas.edu.sg/wp-content/uploads/2024/04/TRS12_24.pdf) argues that there is a strong dichotomy between Malay and non-Malay voters' perceptions of the government. 85% of Malay voters felt that the Perikatan Nasional government protects the interest of the Malays, while 77% of non-Malay voters believed the government does not treat all races equally. 
 
-Given this strong racial component to elections, we will next use demographic data to predict Pakatan Harapan's and Perikatan Nasional's performance in the upcoming GE-16. 
-
+Given the intense racialisation of Malaysian politics, we will next use demographic data to predict the performances of Pakatan Harapan and Perikatan Nasional in the upcoming GE-16. 
 
 <br><br><br>
 
@@ -1083,6 +1080,7 @@ stepwise_model <- step(lm(
 ```
 
 
+
 ```{r glmnet-model-ph}
 
 set.seed(3)
@@ -1134,8 +1132,6 @@ rss_glm <- sum((testing_preds$pc_ph_votes - testing_preds$glmnet_pred)^2)
 1 - rss_glm / tss
 ```
 
-Let's now predict Pakatan Harapan's performance in the upcoming general election (in this case, the percentage of votes we anticipate them to receive). 
-
 
 ```{r ph-safe-seats}
 
@@ -1185,9 +1181,9 @@ ph_ge_15 <- ballots |>
 ```
 
 
-Below, the performance of PH in GE-15 is plotted against their predicted performance in GE-16, with each point being a federal electoral constituency. The combined stepwise-glmnet model predicts that PH's vote share will shrink in GE-16. 
+Below, the performance (the share of votes they received) of PH in GE-15 is plotted against their predicted performance in GE-16 using the combination of a stepwise and a glmnet model, with each point being a federal constituency. It is predicted that PH's vote share will shrink in GE-16. 
 
-We note that the number of seats that PH can expect to win is only **`r safe_seats`** out of the 222 total seats in parliament, down from `r ph_ge_15` in GE-15. 
+We predict that Pakatan is expected to win only **`r safe_seats`** out of the 222 total seats in parliament, down from `r ph_ge_15` in GE-15. 
 
 
 <br>
@@ -1235,9 +1231,9 @@ ggplotly(pred_plot, tooltip = c("text")) |>
 <br>
 
 
-These predictions also underscore the instability of the Madani government's coalition. The results have been re-plotted below to show the GE-15 winner of each constituency. Marginal seats (roughly in the middle of the graph below) where PH may seak to expand its reach will largely only come at the expense of BN and vice versa. 
+These predictions also underscore the instability of the Madani government's coalition. The results have been re-plotted below to show the GE-15 winner of each constituency. Marginal seats (roughly in the middle of the graph below) where PH may seek to expand its reach will largely only come at the expense of BN and vice versa. 
 
-There are a fair number of marginal seats where PH received less than 40% of the votes in GE-15, but were still won by PH (many of these were three-cornered fights). These are all vulnerable for pickup by BN or PN. 
+There are a fair number of marginal seats (largely three-cornered fights) where PH received less than 40% of the votes in GE-15, but were still won by them. These are all vulnerable for pick-up by BN or PN. 
 
 <br>
 
@@ -1276,9 +1272,51 @@ ggplotly(pred_plot_coalition, tooltip = c("text")) |>
   config(displayModeBar = FALSE)
 ```
 
+<br>
+
+Based on our predictions of PH's performance, below is the projected breakdown of seats within the coalition. The DAP will remain the largest party in the coalition, whilst PKR will be faced with the highest amount of difficult races. 
+
+<br>
+
+```{r party-ph-preds}
+testing_preds |> 
+  mutate(ph_win_chance = ifelse(
+    proj_ph_vote < .5, proj_ph_vote * modifier1 * 100, proj_ph_vote * modifier2 * 100), 
+    ph_win_chance = ifelse(ph_win_chance > 1, 1, ph_win_chance)) |> 
+  filter(ph_win_chance >= .5) |> 
+  mutate(marginal = ifelse(ph_win_chance <= .7, "Marginal", "Safe")) |> 
+  left_join(
+    ballots |>
+      filter(election == "GE-15" & rank %in% c(1, 2)) |>
+      select(state, seat, rank, party) |>
+      mutate(rank = ifelse(rank == 1, "first", "second")) |>
+      pivot_wider(names_from = rank, values_from = party), 
+    by = c("parlimen" = "seat")
+  ) |> 
+  mutate(projected_winner = ifelse(
+    first %out% c("AMANAH", "DAP", "MUDA", "PKR", "UPKO"), 
+    second, 
+    first), 
+    count = 1) |>
+  group_by(projected_winner, marginal) |> 
+  summarise(count = sum(count)) |>
+  ggplot(aes(x = count, y = reorder_within(projected_winner, count, marginal))) + 
+  geom_col(aes(fill = projected_winner)) + 
+  geom_text(aes(label = count),
+            hjust = "inward") +
+  scale_fill_viridis_d(option = "cividis") + 
+  facet_wrap(~ marginal, scales = "free_y") +
+  scale_y_reordered() +
+  guides(fill = guide_legend(reverse = TRUE)) + 
+  labs(title = "Projected breakdown of probable PH seats in GE-16", 
+       subtitle = "Marginal seats are those where PH is expected to win less than 50% of the vote", 
+       y = "", 
+       x = "Projected number of seats") + 
+  theme(legend.position = "none", 
+        strip.background = element_rect(fill = "grey20"))
 
 
-
+```
 <br><br><br>
 
 ## Perikatan Nasional
@@ -1499,7 +1537,7 @@ pn_safe_seats <- pn_test |>
   mutate(pn_win_chance = ifelse(
     proj_pn_vote < .5, proj_pn_vote * modifier_pn1 * 100, proj_pn_vote * modifier_pn2 * 100), 
     pn_win_chance = ifelse(pn_win_chance > 1, 1, pn_win_chance)) |>
-  filter(pn_win_chance > .5) |> 
+  filter(pn_win_chance >= .5) |> 
   nrow()
 
 pn_ge_15 <- ballots |> 
@@ -1560,6 +1598,58 @@ ggplotly(pn_pred_plot, tooltip = c("text")) |>
 <br> 
 
 The model does not predict, however, an outright win. And Perikatan Nasional will still need to partner with another coalition to form the government. 
+
+PAS is anticipated to be the largest party within the coalition, and it will also contest fewer marginal seats than Bersatu. 
+
+<br>
+
+
+
+```{r party-pn-preds}
+
+pn_test |> 
+  mutate(pn_win_chance = ifelse(
+    proj_pn_vote < .5, proj_pn_vote * modifier_pn1 * 100, proj_pn_vote * modifier_pn2 * 100), 
+    pn_win_chance = ifelse(pn_win_chance > 1, 1, pn_win_chance)) |>
+  filter(pn_win_chance >= .5) |>
+  mutate(marginal = ifelse(pn_win_chance <= .7, "Marginal", "Safe")) |> 
+  left_join(
+    ballots |>
+      filter(election == "GE-15" & rank %in% c(1, 2, 3)) |>
+      select(state, seat, rank, party) |>
+      mutate(rank = case_when(rank == 1 ~ "first", 
+                              rank == 2 ~ "second", 
+                              rank == 3 ~ "third")) |> 
+      pivot_wider(names_from = rank, values_from = party), 
+    by = c("parlimen" = "seat")
+  ) |> 
+  mutate(projected_winner = case_when(
+    first %in% c("BERSATU", "GERAKAN", "PAS") ~ first, 
+    second %in% c("BERSATU", "GERAKAN", "PAS") ~ second, 
+    third %in% c("BERSATU", "GERAKAN", "PAS") ~ third), 
+    count = 1) |> 
+  group_by(projected_winner, marginal) |> 
+  summarise(count = sum(count)) |>
+  ggplot(aes(x = count, y = reorder_within(projected_winner, count, marginal))) + 
+  geom_col(aes(fill = projected_winner)) + 
+  geom_text(aes(label = count),
+            hjust = "inward", 
+            colour = "grey40") +
+  scale_fill_viridis_d(option = "cividis") + 
+  facet_wrap(~ marginal, scales = "free_y") +
+  scale_y_reordered() +
+  guides(fill = guide_legend(reverse = TRUE)) + 
+  labs(title = "Projected breakdown of probable PN seats in GE-16", 
+       subtitle = "Marginal seats are those where PN is expected to win less than 50% of the vote", 
+       y = "", 
+       x = "Projected number of seats") + 
+  theme(legend.position = "none", 
+        strip.background = element_rect(fill = "grey20"))
+
+
+```
+
+
 
 <br><br><br>
 
@@ -1654,7 +1744,7 @@ tribble(
 
 <br>
 
-It might not be possible to re-form the Madani government. This is dependent on the scale of BN's losses and the scale of PN's victory. We were not able to develop a model that accurately predicted BN's district-level vote share using demographic data, probably due to BN's performance being largely determined by non-demographic factors (i.e. running a particularly strong candidate in Titiwangsa or the strengthening of unfavourable perceptions of the coalition). It is possible that they will not even be in a position to play kingmaker, especially if our predictions about their poor performance against Perikatan hold true. 
+It might not be possible to re-form the Madani government. This is dependent on the extent of BN's losses and the scale of PN's victory. We were not able to develop a model that accurately predicted BN's district-level vote share using demographic data, probably due to BN's performance being largely determined by non-demographic factors (i.e. running a particularly strong candidate in Titiwangsa or the strengthening of unfavourable perceptions of the coalition). It is possible that they will not even be in a position to play kingmaker. 
 
 
 <br>
@@ -1763,9 +1853,7 @@ ballots |>
 
 <br>
 
-If we take a look at the most marginal seats from GE-15 in the plot above, BN's largest competitors are PH and PN. If support for BN to further erode and Malay voters to consolidate behind PN, as we predict, PH would no longer be sure to win in three-cornered fights (where it has picked up most of its post-2018 wins). 
-
-The primary beneficiary of three-cornered fights after the collapse of UMNO has been Pakatan Harapan.
+If we take a look at the most marginal seats from GE-15 in the plot above, BN's largest competitors are PH and PN. If support for BN to further erode and Malay voters to consolidate behind PN, as we predict, PH would no longer be sure to win in three-cornered fights (where it has picked up most of its post-2018 wins). The primary beneficiary of three-cornered fights after the collapse of UMNO has been Pakatan Harapan.
 
 <br>
 
@@ -1843,7 +1931,7 @@ ballots |>
 
 [James Chin](https://www.commonwealthroundtable.co.uk/commonwealth/eurasia/malaysia/research-article-anwars-long-walk-to-power-the-2022-malaysian-general-elections/) at the Commonwealth Roundtable argues that there is no longer any middle ground left in Malaysian politics, with the DAP (Pakatan) on one end and PAS (Perikatan) on the other. This erosion of the middle ground will have a profound negative impact on Pakatan Harapan's election chances, especially as it refuses to engage in the Islamisation race or put forward an alternative vision that can win over Malay youth. 
 
-The convergence of the two social cleavages of race and religion, as well as UMNO's downfall, have made it probable that Perikatan Nasional will be the largest coalition in parliament. 
+The convergence of the two social cleavages of race and religion, as well as UMNO's downfall, have made it most probable that Perikatan Nasional will be the largest coalition in parliament. 
 
 
 <br><br><br>
@@ -1893,9 +1981,9 @@ coef(glmnet_model$finalModel, s = glmnet_model$bestTune$lambda)
 
 The stepwise model used to predict Perikatan's election performance is more complex than what was needed to predict Pakatan Harapan's performance. 
 
-The percentage of Chinese in a constituency has the strongest negative correlation with PN performance, followed by the percentage of East Malaysia Bumis. The negative correlation with the percentage of peninsula Bumis might indicate that homogeneous Malay constituencies still have a tendency to vote for UMNO (though its t-value is comparatively lower). 
+The percentage of Chinese in a constituency has the strongest negative correlation with PN performance, followed by the percentage of East Malaysia Bumis. The negative correlation with the percentage of peninsula Bumis might indicate that homogeneous Malay constituencies still have a tendency to vote for UMNO (though its t-value is comparatively lower).  
 
-There are also negative correlations with average income (indicating more disadvantaged areas are more likely to vote for PN) as well with the sex ratio. 
+There are also negative correlations with average income (indicating more disadvantaged areas are more likely to vote for PN) as well with the sex ratio. Additionally, whilst the effect is not as strong as it is with Pakatan Harapan, population density does have a positive correlation with PN's vote share -- it does have quite widespread popularity in urban areas in northern and eastern peninsula Malaysia. 
 
 <br>
 
@@ -1921,7 +2009,7 @@ As with the Pakatan Harapan model, the predictions for both the Perikatan models
 
 Finally, below is the stepwise model used to predict the difference between Barisan and Perikatan vote shares. We see that Barisan is more likely to win less dense areas (BN is the primary beneficiary of malapportionment, as we note in our [addendum on malapportionment](https://aimdata-labs.github.io/malaysian_elections/)), as well in areas that were more ethnically diverse. Additionally, BN is more likely than PN to win in areas that have higher incomes and more men than women. 
 
-However, we should note than the r-squared is quite low, when compared to the earlier two models. BN's performance is actually quite difficult to model from demographic data. 
+However, we should note than the r-squared is quite low, when compared to the earlier two models. BN's performance is actually quite difficult to model from demographic data, probably due to the several non-demographic factors influencing their popularity (corruption, dissatisfaction over their collaboration with PH). 
 
 <br>
 
@@ -1942,7 +2030,7 @@ coef(glmnet_model_bp$finalModel, s = glmnet_model_bp$bestTune$lambda)
 
 Ultimately, these models highlight the electoral challenges faces Barisan: whilst it may be more competitive than Perikatan in areas that are more ethnically diverse, it will still likely lose those seats to Pakatan Harapan. It may be more competitive in East Malaysia, but support there has swung towards native and indigenous coalitions. And whilst it can still win largely homogeneous Malay communities, these constituencies tend to be extremely small in terms of population.
 
-We could very conceivably improve these predictions if we had access to additional small-area demographic and economic data, such as education levels, small-area GDP data as well as a breakdown of the population by religion. 
+We could very conceivably improve these predictions if we had access to additional data, such as education levels and religious attitudes. Additionally, opinion polling in Malaysia is far less developed than in the US and UK and do not occur at a sufficient frequency or sample size to be included in the models we have developed. 
 
 <br><br><br>
 
