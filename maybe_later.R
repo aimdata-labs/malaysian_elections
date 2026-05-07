@@ -879,3 +879,8 @@ pn_bn_results |>
 
 ggsave("./plots/pn_bn_predictions.png", height = 4, width = 7, units = "in")
 
+ggsave("./plots/predicted_vote_shares_bars.png", height = 3, width = 7, units = "in")
+
+Hindus were the most likely to have experienced religious-based discrimination (40%), compared to their Christian (26%), Buddhists (22%) and Muslims (20%). 59% of Muslim respondents believe their own religious group faced a lot discrimination, with the figure being 63% amongst Buddhists, 76% amongst Christians and 81% amongst Hindus. 
+
+`r census_fed |> filter(pc_bumi > .75) |> nrow()` out of the `r census_fed |> nrow()` federal constituencies have at least 25% of their populations being racial minorities. 

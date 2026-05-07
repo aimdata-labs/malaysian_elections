@@ -34,6 +34,7 @@ library(glmnet)
 library(caret)
 library(plotly)
 library(ggguides)
+library(DT)
 
 `%out%` <- Negate(`%in%`)
 options(scipen = 100)
@@ -1847,6 +1848,8 @@ ballots |>
        y = "Number of marginal seats", 
        fill = "Second\nplace")
 
+
+
 ```
 
 <br>
@@ -1923,6 +1926,7 @@ ballots |>
                                                    alpha = 1), 
                                reverse = TRUE))
 
+# ggsave("./plots/performance_year.png", width = 7, height = 4, units = "in")
 ```
 
 <br>
@@ -1946,6 +1950,65 @@ The data for this report comes primarily from  [Thevesh](https://github.com/Thev
 
 Additional data, including the digitised census datasets, come from [JJean95](https://www.kaggle.com/datasets/jjean95/malaysia-general-election-datasets?select=census_dun.csv) and [Jane Loh](https://www.kaggle.com/datasets/janeloh/malaysia-census-demographic-2020).
 
+
+<br><br><br>
+
+## Reference table
+
+```{r}
+testing_preds |> 
+  left_join(
+    ballots |> 
+      filter(election == "GE-15" & result %in% c("won", "won_uncontested")) |> 
+      select(state, seat, coalition), 
+    by = c("parlimen" = "seat")
+  ) |> 
+  mutate(ph_win_chance = ifelse(
+    proj_ph_vote < .5, proj_ph_vote * modifier1 * 100, proj_ph_vote * modifier2 * 100), 
+    ph_win_chance = ifelse(ph_win_chance > 1, 1, ph_win_chance)) |> 
+  left_join(
+    pn_test |>
+      left_join(
+        ballots |>
+          filter(election == "GE-15" &
+                   result %in% c("won", "won_uncontested")) |>
+          select(state, seat, coalition),
+        by = c("parlimen" = "seat")
+      ) |>
+      mutate(
+        pn_win_chance = ifelse(
+          proj_pn_vote < .5,
+          proj_pn_vote * modifier_pn1 * 100,
+          proj_pn_vote * modifier_pn2 * 100
+        ),
+        pn_win_chance = ifelse(pn_win_chance > 1, 1, pn_win_chance),
+        pn_win = ifelse(pn_win_chance < .5, "pn_win", "pn_loss")
+      ) |>
+      select(parlimen, proj_pn_vote, pn_win_chance), 
+    by = "parlimen"
+  ) |> 
+  mutate(winner = case_when(
+    ph_win_chance >= .5 ~ "PH win", 
+    pn_win_chance >= .5 ~ "PN win", 
+    TRUE ~ "Other"), 
+    winner = fct_relevel(winner, c("PH win", "PN win", "Other"))) |> 
+  mutate(proj_ph_vote = round(proj_ph_vote * 100, 2), 
+         proj_pn_vote = round(proj_pn_vote * 100, 2), 
+         winner = str_replace_all(winner, " win", "")) |> 
+  select(
+    State = state, Seat = parlimen, 
+    `pred. PH vote` = proj_ph_vote, 
+    `pred. PN vote` = proj_pn_vote, 
+    `pred. winner` = winner, 
+    `GE15 winner` = coalition
+  ) |>  
+  datatable(filter = list(position = "top", clear = FALSE),
+            options = list(pageLength = 10, scrollX = TRUE),
+            caption = htmltools::tags$caption(style = "caption-side: top;
+                                              text-align: center; font-size: 140%;",
+                                              "Predicted vote shares for GE-16"))
+  
+```
 
 <br><br><br>
 
