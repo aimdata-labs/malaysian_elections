@@ -434,7 +434,7 @@ According to an [Architects of Diversity survey](https://www.aodmalaysia.org/sod
 
 They add, "politics accounted for just over 43% of all recorded racial discrimination incidents between 2015 and 2024" and that "racial and religious politics remain the primary diver of racial discrimination in Malaysia". The next general election is likely to witness another surge in racial politics, particularly with PAS and Bersatu continuing to consolidate their Malay-Muslim voter bases. 
 
-43% (97 out of 222 constituencies) have ever had multiethnic electoral races (where the candidates were from different races). These constituencies align largely with the areas with the highest concentrations of non-Bumiputeras. 
+43% (97 out of 222 constituencies) have ever had multiethnic electoral races (where the candidates were from different races). These constituencies align largely with the areas with the highest concentrations of non-Bumiputeras. The latest redelineation was done in 2006 and the plots in this section will focus on the years since then. 
 
 
 <br>
@@ -513,9 +513,7 @@ parlimen_geo |>
 
 <br>
 
-`r census_fed |> filter(pc_bumi > .75) |> nrow()` out of the `r census_fed |> nrow()` federal constituencies have at least 25% of their populations being racial minorities. The latest redelineation was done in 2006 and the plots in this section will focus on the years since then. 
-
-Commonsensically, given the racialised nature of Malaysian politics, Bumiputera candidates are far more likely to win in areas that have high proportions of Bumiputera candidates. Non-bumiputera candidates almost never win seats in constituencies with more than 75% Bumiputera residents and Bumiputera candidates tend only to win when a constituency has a population that is more than 50% Bumi. 
+Given the racialised nature of Malaysian politics, Bumiputera candidates are far more likely to win in areas that have high proportions of Bumiputera candidates. Non-bumiputera candidates almost never win seats in constituencies with more than 75% Bumiputera residents (`r census_fed |> filter(pc_bumi > .75) |> nrow()` out of the `r census_fed |> nrow()` federal constituencies have at least 25% of their populations be racial minorities) and Bumiputera candidates tend only to win when a constituency has a population that is more than 50% Bumi. 
 
 <br>
 
@@ -1278,7 +1276,7 @@ Based on our predictions of PH's performance, below is the projected breakdown o
 
 <br>
 
-```{r party-ph-preds}
+```{r party-ph-preds, fig.height=3.5}
 testing_preds |> 
   mutate(ph_win_chance = ifelse(
     proj_ph_vote < .5, proj_ph_vote * modifier1 * 100, proj_ph_vote * modifier2 * 100), 
@@ -1304,7 +1302,7 @@ testing_preds |>
   geom_col(aes(fill = projected_winner)) + 
   geom_text(aes(label = count),
             hjust = "inward") +
-  scale_fill_viridis_d(option = "cividis") + 
+  scale_fill_viridis_d(option = "cividis", begin = .8, end =.2) + 
   facet_wrap(~ marginal, scales = "free_y") +
   scale_y_reordered() +
   guides(fill = guide_legend(reverse = TRUE)) + 
@@ -1605,7 +1603,7 @@ PAS is anticipated to be the largest party within the coalition, and it will als
 
 
 
-```{r party-pn-preds}
+```{r party-pn-preds, fig.height=3}
 
 pn_test |> 
   mutate(pn_win_chance = ifelse(
@@ -1635,7 +1633,7 @@ pn_test |>
   geom_text(aes(label = count),
             hjust = "inward", 
             colour = "grey40") +
-  scale_fill_viridis_d(option = "cividis") + 
+  scale_fill_viridis_d(option = "cividis", begin = .8, end =.2) + 
   facet_wrap(~ marginal, scales = "free_y") +
   scale_y_reordered() +
   guides(fill = guide_legend(reverse = TRUE)) + 
