@@ -102,6 +102,6 @@
     "href": "index.html#reference-table",
     "title": "Malaysian Elections",
     "section": "Reference table",
-    "text": "Reference table"
+    "text": "Reference table\nNote that the models sometimes predict negative vote shares. We have left these in as the models are overall, fairly accurate and explainable and these instances of negative vote shares are quite few in number."
   }
 ]

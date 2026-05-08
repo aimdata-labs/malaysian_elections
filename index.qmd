@@ -1797,6 +1797,10 @@ Additional data, including the digitised census datasets, come from [JJean95](ht
 
 ## Reference table
 
+Note that the models sometimes predict negative vote shares. We have left these in as the models are overall, fairly accurate and explainable and these instances of negative vote shares are quite few in number. 
+
+<br>
+
 ```{r}
 testing_preds |> 
   left_join(
