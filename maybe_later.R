@@ -884,3 +884,186 @@ ggsave("./plots/predicted_vote_shares_bars.png", height = 3, width = 7, units = 
 Hindus were the most likely to have experienced religious-based discrimination (40%), compared to their Christian (26%), Buddhists (22%) and Muslims (20%). 59% of Muslim respondents believe their own religious group faced a lot discrimination, with the figure being 63% amongst Buddhists, 76% amongst Christians and 81% amongst Hindus. 
 
 `r census_fed |> filter(pc_bumi > .75) |> nrow()` out of the `r census_fed |> nrow()` federal constituencies have at least 25% of their populations being racial minorities. 
+
+Think about redoing the win chance 
+
+
+# Too messy, especially in Sarawak. Furthermore, there is no breakdown for KL 
+# Let's see if we're polluting the models by bringing this in
+
+gdp_district <- read_csv("./data/gdp_district_real_supply_yoy.csv") |> 
+  mutate(sector = case_when(
+    sector == "p0" ~ "all", 
+    sector == "p1" ~ "agriculture", 
+    sector == "p2" ~ "mining", 
+    sector == "p3" ~ "manufacturing", 
+    sector == "p4" ~ "construction", 
+    sector == "p5" ~ "services"
+  )) |>  
+  mutate(economic_district = case_when(
+    district %in% c("Kulim", "Bandar Baharu") & state == "Kedah" ~ "Kulim-Bandar Baharu",
+    district %in% c("Asajaya", "Samarahan") & state == "Sarawak" ~ "Kota Samarahan", 
+    district %in% c("Tebedu", "Serian") & state == "Sarawak" ~ "Serian", 
+    district %in% c("Kabong") & state == "Sarawak"~ "Tanjong Manis",
+    district %in% c("Matu", "Dalat", "Mukah") & state == "Sarawak"~ "Mukah",
+    district == "Pakan" & state == "Sarawak" ~ "Julau", 
+    district == "Tatau" & state == "Sarawak" ~ "Selangau", 
+    district %in% c("Belaga", "Bukit Mabong") & state == "Sarawak"~ "Hulu Rajang",
+    district %in% c( "Sebauh") & state == "Sarawak"~ "Bintulu",
+    district %in% c("Beluru", "Telang Usan", "Marudi") & state == "Sarawak"~ "Baram",
+    TRUE ~ district
+  )) |> 
+  filter(sector %in% c("all", "services")) |> 
+  group_by(economic_district, state, date) |>
+  summarise(growth_yoy = mean(value[series == "growth_yoy"], na.rm = TRUE), 
+            district_gdp = sum(value[series == "abs" & sector == "all"], na.rm = TRUE), 
+            services_gdp = sum(value[series == "abs" & sector == "services"], na.rm = TRUE), 
+            .groups = "drop") |> 
+  right_join(
+    census_fed |> 
+      mutate(district = str_sub(parlimen, start = 7L)) |> 
+      distinct(district, state, parlimen) |>
+      mutate(
+        economic_district = case_when(
+          district == "Ledang" & state == "Johor" ~ "Tangkak",
+          district == "Bakri" & state == "Johor" ~ "Muar", 
+          district %in% c("Alor Setar", "Kuala Kedah") & state == "Kedah" ~ "Kota Setar",
+          district == "Jerai" & state == "Kedah" ~ "Yan",
+          district %in% c("Sungai Petani", "Merbok") &
+            state == "Kedah" ~ "Kuala Muda",
+          district == "Padang Serai" &
+            state == "Kedah" ~ "Kulim-Bandar Baharu",
+          district == "Jerlun" & state == "Kedah" ~ "Kubang Pasu", 
+          district == "Gua Musang" & state == "Kelantan" ~ "Kecil Lojing",
+          district == "Pengkalan Chepa" & state == "Kelantan" ~ "Kota Bharu",
+          district == "Rantau Panjang" & state == "Kelantan" ~ "Pasir Mas",
+          district == "Kubang Kerian" ~ "Kota Bharu",
+          district == "Ketereh" ~ "Kota Bharu",
+          district == "Kepala Batas" ~ "Seberang Perai Utara",
+          district == "Tasek Gelugor" ~ "Seberang Perai Utara",
+          district == "Bagan" ~ "Seberang Perai Utara",
+          district == "Permatang Pauh" ~ "Seberang Perai Tengah",
+          district == "Bukit Mertajam" ~ "Seberang Perai Tengah",
+          # Part of Batu Kawan in Selatan
+          district == "Batu Kawan" ~ "Seberang Perai Tengah",
+          district == "Nibong Tebal" ~ "Seberang Perai Selatan",
+          district == "Bukit Bendera" ~ "Timur Laut",
+          district == "Tanjong" & state == "Pulau Pinang" ~ "Timur Laut",
+          district == "Jelutong" & state == "Pulau Pinang" ~ "Timur Laut",
+          district == "Bukit Gelugor" & state == "Pulau Pinang" ~ "Timur Laut",
+          district == "Bayan Baru" & state == "Pulau Pinang" ~ "Barat Daya",
+          district == "Balik Pulau" &
+            state == "Pulau Pinang" ~ "Barat Daya",
+          district == "Gerik" & state == "Perak" ~ "Hulu Perak",
+          district == "Lenggong" & state == "Perak" ~ "Hulu Perak",
+          district == "Larut" & state == "Perak" ~ "Selama",
+          district == "Parit Buntar" & state == "Perak" ~ "Perak Tengah",
+          district == "Bagan Serai" & state == "Perak" ~ "Kerian",
+          district == "Bukit Gantang" & state == "Perak" ~ "Larut Dan Matang",
+          district == "Taiping" & state == "Perak" ~ "Larut Dan Matang",
+          district == "Padang Rengas" & state == "Perak" ~ "Kuala Kangsar",
+          district == "Sungai Siput" & state == "Perak" ~ "Kuala Kangsar",
+          district == "Tambun" & state == "Perak" ~ "Kinta",
+          district == "Ipoh Timor" & state == "Perak" ~ "Kinta",
+          district == "Ipoh Barat" & state == "Perak" ~ "Kinta",
+          district == "Batu Gajah" & state == "Perak" ~ "Kinta",
+          district == "Gopeng" & state == "Perak" ~ "Kinta",
+          district == "Beruas" & state == "Perak" ~ "Manjung",
+          district == "Parit" & state == "Perak" ~ "Perak Tengah",
+          district == "Tapah" & state == "Perak" ~ "Batang Padang",
+          district == "Pasir Salak" & state == "Perak" ~ "Perak Tengah",
+          district == "Lumut" & state == "Perak" ~ "Bagan Datuk",
+          district == "Teluk Intan" & state == "Perak" ~ "Hilir Perak",
+          district == "Tanjong Malim" & state == "Perak" ~ "Muallim",
+          district == "Indera Mahkota" & state == "Pahang" ~ "Kuantan",
+          district == "Paya Besar" & state == "Pahang" ~ "Kuantan",
+          district == "Kuala Krau" & state == "Pahang" ~ "Temerloh",
+          district == "Hulu Selangor" &
+            state == "Selangor" ~ "Ulu Selangor",
+          district == "Hulu Langat" & state == "Selangor" ~ "Ulu Langat",
+          district == "Tanjong Karang" &
+            state == "Selangor" ~ "Kuala Selangor",
+          district == "Selayang" & state == "Selangor" ~ "Gombak",
+          district == "Sungai Besar" & state == "Selangor" ~ "Sabak Bernam", 
+          district == "Ampang" & state == "Selangor" ~ "Ulu Langat",
+          district == "Bangi" & state == "Selangor" ~ "Ulu Langat",
+          district == "Pandan" & state == "Selangor" ~ "Ulu Langat",
+          district == "Puchong" & state == "Selangor" ~ "Petaling",
+          district == "Subang" & state == "Selangor" ~ "Petaling",
+          district == "Petaling Jaya" & state == "Selangor" ~ "Petaling",
+          district == "Damansara" & state == "Selangor" ~ "Petaling",
+          district == "Sungai Buloh" & state == "Selangor" ~ "Petaling",
+          district == "Shah Alam" & state == "Selangor" ~ "Klang",
+          district == "Kota Raja" & state == "Selangor" ~ "Klang",
+          district == "Kapar" & state == "Selangor" ~ "Klang",
+          district == "Masjid Tanah" & state == "Melaka" ~ "Alor Gajah",
+          district == "Tangga Batu" & state == "Melaka" ~ "Melaka Tengah",
+          district == "Hang Tuah Jaya" &
+            state == "Melaka" ~ "Melaka Tengah",
+          district == "Kota Melaka" & state == "Melaka" ~ "Melaka Tengah",
+          district == "Rasah" & state == "Negeri Sembilan" ~ "Seremban",
+          district == "Sekijang" & state == "Johor" ~ "Segamat",
+          district == "Labis" & state == "Johor" ~ "Segamat",
+          district == "Pagoh" & state == "Johor" ~ "Muar",
+          district == "Parit Sulong" & state == "Johor" ~ "Batu Pahat",
+          district == "Ayer Hitam" & state == "Johor" ~ "Batu Pahat",
+          district == "Sri Gading" & state == "Johor" ~ "Batu Pahat",
+          district == "Simpang Renggam" & state == "Johor" ~ "Kluang",
+          district == "Sembrong" & state == "Johor" ~ "Kluang",
+          district == "Tenggara" & state == "Johor" ~ "Kota Tinggi",
+          district == "Pengerang" & state == "Johor" ~ "Kota Tinggi",
+          district == "Tebrau" & state == "Johor" ~ "Johor Bahru",
+          district == "Pasir Gudang" & state == "Johor" ~ "Johor Bahru",
+          district == "Iskandar Puteri" &
+            state == "Johor" ~ "Johor Bahru",
+          district == "Pulai" & state == "Johor" ~ "Kulai",
+          district == "Tanjung Piai" & state == "Johor" ~ "Pontian",
+          district == "Sepanggar" & state == "Sabah" ~ "Kota Kinabalu",
+          district == "Kimanis" & state == "Sabah" ~ "Papar",
+          district == "Pensiangan" & state == "Sabah" ~ "Nabawan",
+          district == "Libaran" & state == "Sabah" ~ "Sandakan",
+          district == "Batu Sapi" & state == "Sabah" ~ "Sandakan",
+          district == "Santubong" & state == "Sarawak" ~ "Kuching",
+          district == "Mas Gading" & state == "Sarawak" ~ "Kuching",
+          district == "Bandar Kuching" & state == "Sarawak" ~ "Kuching",
+          district == "Stampin" & state == "Sarawak" ~ "Kuching",
+          district == "Petra Jaya" & state == "Sarawak" ~ "Kuching",
+          district == "Puncak Borneo" & state == "Sarawak" ~ "Bau",
+          district %in% c("Batang Sadong") & state == "Sarawak" ~ "Simunjan",
+          district %in% c("Batang Lupar") & state == "Sarawak" ~ "Pusa",
+          district == "Igan" & state == "Sarawak" ~ "Daro",
+          district %in% c("Sibu", "Lanang") &
+            state == "Sarawak" ~ "Sibu",
+          district == "Sibuti" & state == "Sarawak" ~ "Subis",
+          state == "Perlis" ~ "Perlis",
+          state == "Kuala Lumpur" ~ "W.P. Kuala Lumpur", 
+          state == "Labuan" ~ "W.P. Labuan", 
+          state == "Putrajaya" ~ "Sepang", 
+          TRUE ~ district
+        )
+      ) |> 
+      select(-state), 
+    by = c("economic_district"), 
+    relationship = "many-to-many"
+  ) |> 
+  mutate(pc_services = services_gdp / district_gdp) |> 
+  group_by(state, parlimen) |> 
+  summarise(mean_growth = mean(growth_yoy, na.rm = TRUE), 
+            district_gdp = mean(district_gdp[date == "2020-01-01"]), 
+            pc_services = mean(pc_services[date == "2020-01-01"]), 
+            .groups = "drop"
+  )
+
+# Let's just ignore the state modifier
+ballots |> 
+  filter(coalition == "PH" & federal == "Federal") |> 
+  mutate(ph_win = ifelse(result %in% c("won", "won_uncontested"), 1, 0), 
+         votes_perc = votes_perc / 100) |> 
+  nest(data = -state) %>%
+  mutate(model = map(
+    data, ~lm(ph_win ~ votes_perc, data = .)), 
+    tidied = map(model, broom::tidy)) |> 
+  unnest(tidied) |> 
+  filter(term != "(Intercept)") |> 
+  # mutate(estimate = ifelse(state == "W.P. Labuan", 0, estimate)) |> 
+  select(state, state_modifier = estimate)
