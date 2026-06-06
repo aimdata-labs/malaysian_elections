@@ -1,0 +1,566 @@
+---
+title: "Malaysian Elections"
+subtitle: "Part three: Online Sentiments"
+author: "Sean Ng"
+organization: "AIMdata"
+date-modified: "13 May 2026"
+execute: 
+  echo: false
+---
+
+```{r setup, include = FALSE}
+
+knitr::opts_chunk$set(echo = FALSE, 
+                      warning = FALSE, 
+                      message = FALSE, 
+                      fig.width = 9)
+
+
+library(tidyverse)
+library(here)
+library(janitor)
+library(scales)
+library(tidytext)
+library(widyr)
+library(ggraph)
+library(patchwork)
+library(kableExtra)
+library(viridis)
+library(stringr)
+library(sf)
+library(broom)
+library(malaytextr)
+library(topicmodels)
+
+`%out%` <- Negate(`%in%`)
+options(scipen = 100)
+theme_set(theme_light())
+range_wna <- function(x){(x-min(x, na.rm = TRUE))/(max(x, na.rm = TRUE)-min(x, na.rm = TRUE))}
+
+Mode <- function(x) {
+  ux <- unique(x)
+  ux[which.max(tabulate(match(x, ux)))]
+}
+
+last_comma <- function(x, sep = ","){
+  x <- sapply(strsplit(x, sep),"[")
+  trimws(x[[length(x)]])
+}
+```
+
+Najib last term 
+5 May 2013 - 9 May 2018
+
+Mahathir 
+9 May 2018 - 28 February 2020
+
+Muhyiddin
+1 March 2020 - 20 August 2021
+
+Ismail Sabri
+21 August 2021 - 23 November 2022
+
+Anwar Ibrahim 
+24 November 2022 - present 
+
+
+
+```{r}
+threads <- read_csv("./data/malaysia_subreddit_threads.csv")
+
+threads_2026 <- read_csv("./data/malaysia_subreddit_threads_2026.csv")
+
+# Commented out because I've already taken a subset of it
+# comments <- read_csv("./raw_data/malaysia_subreddit_comments.csv") |>
+#    left_join(
+#     threads |> 
+#       distinct(thread_id, flair = link_flair_text, title), 
+#     by = "thread_id"
+#   ) |> 
+#   rbind(read_csv("./data/malaysia_subreddit_comments_2026.csv") |> 
+#           filter(created_utc > "2026-01-03 20:41:56 UTC") |> 
+#           left_join(
+#     threads_2026 |> 
+#       distinct(thread_id, flair = link_flair_text, title), 
+#     by = "thread_id"
+#   )) |> 
+#   mutate(flair = ifelse(is.na(flair) & str_detect(title, "daily random"),
+#                                   "Daily Random", 
+#                                   flair)) |> 
+#   filter(
+#     flair %in% c("Economy & Finance", "Politics", "Religion")
+#   )
+#
+# comments |> write_csv("./data/malaysia_subreddit_comments_filtered.csv")
+
+comments <- read_csv("./data/malaysia_subreddit_comments_filtered.csv")
+
+malay_slang <- read_csv("./data/malay_slang.csv")
+
+# malay slang dictionary compiled by https://data.mendeley.com/datasets/mgv2n2vcb9/3
+
+malay_eng_73k <- read.table("https://dl.fbaipublicfiles.com/arrival/dictionaries/en-ms.txt", header = FALSE) |> 
+  rename(english = V1, malay = V2)
+
+```
+
+
+Threads about religion are the most popular attract the most comments, giving additional credence to 
+[Deivasagayam's](https://msocialsciences.com/index.php/mjssh/article/view/3248/2134) argument about the increasing importance of
+
+convergence of race and religion. 
+
+## Race and religion
+
+```{r}
+comments |>
+  group_by(flair, thread_id) |>
+  summarise(count = n_distinct(body), 
+            .groups = "drop") |> 
+  group_by(flair) |> 
+  summarise(count = mean(count)) |>
+  mutate(count = round(count, 2)) |> 
+  ggplot(aes(x = count, y = flair)) + 
+  geom_col(aes(fill = flair)) + 
+  geom_text(aes(label = count), 
+            hjust = "inward") + 
+  scale_fill_viridis_d(guide = "none", 
+                       option = "cividis") + 
+  labs(x = "Mean number of comments per post", 
+       y = "Post flair", 
+       title = "Mean number of comments per post, by post flair")
+  
+
+```
+
+<br>
+
+```{r}
+comments |> 
+  filter(!str_detect(body, "Users often report submissions|I am a bot")) |> 
+  mutate(is_anwar = 
+           ifelse(
+             str_detect(title, "Anwar|anwar|pmx|PMX|Pmx|PM|pm|prime minister|Prime Minister") |
+               str_detect(body, "Anwar|anwar|pmx|PMX|Pmx|PM|pm|prime minister|Prime Minister"), 
+                           1, 0)) |> 
+  mutate(count = 1) |> 
+  group_by(is_anwar, flair) |> 
+  summarise(count = sum(count)) |> 
+  mutate(is_anwar = ifelse(is_anwar == 1, "Anwar related", "non-Anwar")) |> 
+  ggplot(aes(x = count, y = fct_rev(is_anwar))) + 
+  geom_col() + 
+  geom_text(aes(label = comma(count)),
+            hjust = "inward") + 
+  facet_wrap(~ flair)
+```
+
+```{r}
+anwar_words <- comments |> 
+  filter(!str_detect(body, "Users often report submissions|I am a bot")) |> 
+  mutate(is_anwar = 
+           ifelse(
+             str_detect(title, "Anwar|anwar|pmx|PMX|Pmx|PM|pm|prime minister|Prime Minister") |
+               str_detect(body, "Anwar|anwar|pmx|PMX|Pmx|PM|pm|prime minister|Prime Minister"), 
+                           1, 0)) |> 
+  filter(is_anwar == 1) |> 
+  mutate(score_trend = case_when(
+    score > 1 ~ "positive", 
+    score == 1 ~ "neutral", 
+    score <= 0 ~ "negative"
+  )) |> 
+  select(comment_id, thread_id, body, score, score_trend, flair) |> 
+  mutate(body = remove_url(body)) |>
+  unnest_tokens(word, body) |> 
+  # Translations
+  mutate(word = ifelse(word %in% malay_slang$slang, malay_slang$translation, word),
+         word = ifelse(word %in% malay_eng_73k$malay, malay_eng_73k$english, word)) |> 
+  mutate(word = str_replace(word, "kepada", "to")) |>
+  filter(word %out% c("emote", "t5_2qh8b", "giphy", "it’s", "don’t")) |> 
+  anti_join(stop_words, by = "word") |> 
+  anti_join(malaystopwords, by = c("word" = "stopwords")) |> 
+  add_count(word, flair) |> 
+  filter(str_detect(word, "[a-z]")) 
+
+israel_words <- comments |> 
+  filter(!str_detect(body, "Users often report submissions|I am a bot")) |> 
+  mutate(is_israel = 
+           ifelse(
+             str_detect(title, "Israel|israel|Jew|jew|Palestin|palestin|Gaza|gaza") |
+               str_detect(body, "Israel|israel|Jew|jew|Palestin|palestin|Gaza|gaza"), 
+                           1, 0)) |> 
+  mutate(score_trend = case_when(
+    score > 1 ~ "positive", 
+    score == 1 ~ "neutral", 
+    score <= 0 ~ "negative"
+  )) |> 
+  filter(is_israel == 1) |> 
+  select(comment_id, thread_id, body, score, score_trend, flair) |> 
+  mutate(body = remove_url(body)) |>
+  unnest_tokens(word, body) |> 
+  # Translations
+  mutate(word = ifelse(word %in% malay_slang$slang, malay_slang$translation, word),
+         word = ifelse(word %in% malay_eng_73k$malay, malay_eng_73k$english, word)) |> 
+  mutate(word = str_replace(word, "kepada", "to")) |>
+  filter(word %out% c("emote", "t5_2qh8b", "giphy", "it’s", "don’t")) |> 
+  anti_join(stop_words, by = "word") |> 
+  anti_join(malaystopwords, by = c("word" = "stopwords")) |> 
+  add_count(word, flair) |> 
+  filter(str_detect(word, "[a-z]"))   
+```
+
+```{r}
+comment_words <- comments |> 
+  filter(!str_detect(body, "Users often report submissions|I am a bot|this comment was removed due")) |> 
+  mutate(is_anwar = 
+           ifelse(
+             str_detect(title, "Anwar|anwar|pmx|PMX|Pmx|PM|pm|prime minister|Prime Minister") |
+               str_detect(body, "Anwar|anwar|pmx|PMX|Pmx|PM|pm|prime minister|Prime Minister"), 
+                           1, 0)) |> 
+  mutate(score_trend = case_when(
+    score > 1 ~ "positive", 
+    score == 1 ~ "neutral", 
+    score <= 0 ~ "negative"
+  )) |> 
+  select(comment_id, thread_id, body, score, score_trend, flair) |> 
+  mutate(body = remove_url(body)) |>
+  unnest_tokens(word, body) |> 
+  # Translations
+  mutate(word = ifelse(word %in% malay_slang$slang, malay_slang$translation, word),
+         word = ifelse(word %in% malay_eng_73k$malay, malay_eng_73k$english, word)) |> 
+  mutate(word = str_replace(word, "kepada", "to")) |>
+  filter(word %out% c("emote", "t5_2qh8b", "giphy", "it’s", "don’t")) |> 
+  anti_join(stop_words, by = "word") |> 
+  anti_join(malaystopwords, by = c("word" = "stopwords")) |> 
+  add_count(word, flair) |> 
+  filter(str_detect(word, "[a-z]")) 
+```
+
+
+
+
+```{r}
+
+anwar_words |> 
+  distinct(flair, word, n) |>
+  filter(word %out% c("pm", "pmx", "it’s")) |> 
+  group_by(flair) |> 
+  slice_max(order_by = n, n = 15) |> 
+  ggplot(aes(x = n, y = reorder_within(word, by = n, within = flair))) + 
+  geom_col(aes(fill = flair)) + 
+  facet_wrap(~ flair, scales = "free") +  
+  scale_y_reordered() + 
+  scale_fill_viridis_d(guide = "none", 
+                       option = "cividis") + 
+  labs(title = "Most common words associated with Anwar Ibrahim, by post flair", 
+       x = "Number of occurences", 
+       y = "", 
+       caption = "Source: https://www.kaggle.com/datasets/bwandowando/reddit-rmalaysia-subreddit-dataset") +
+  theme(strip.background = element_rect(fill = "grey20"))
+```
+<br>
+
+Some of the most common terms that Anwar is mentioned alongside under the "Economics and Finance" flair include **subsidies**, **taxes**, **companies** and **prices**. Under "Politics", in addition to political coalitions like **PH** and **BN**, numerous *Reformasi* topics are also mentioned, including **money** and **corruption**. **Malay** and **Chinese** also indicate the predominance of racial politics; and **Rafizi** indicates talk about the latest of Anwar's intra-party struggles. 
+
+Under "Religion", there is a wider spread of issues, 
+
+<br>
+
+## LDA 
+
+```{r}
+comments_bigrams <- comments |> 
+  mutate(is_anwar = ifelse(str_detect(title, "Anwar|anwar|pmx|PMX|Pmx|PM|pm") |
+                             str_detect(body, "Anwar|anwar|pmx|PMX|Pmx|PM|pm"), 
+                           1, 0)) |> 
+  filter(!str_detect(body, "Users often report submissions|I am a bot|this comment was removed due")) |>
+  mutate(body = str_replace_all(body, "non |Non ", "non-")) |> 
+  mutate(score_trend = case_when(
+    score > 1 ~ "positive", 
+    score == 1 ~ "neutral", 
+    score > 10 ~ "very positive", 
+    score <= 0 ~ "negative"
+  )) |> 
+  select(comment_id, thread_id, body, score, score_trend, flair) |> 
+  mutate(body = remove_url(body)) |> 
+  unnest_tokens(bigram, body, token = "ngrams", n = 2) |> 
+  add_count(bigram) |> 
+  filter(!is.na(bigram)) |> 
+  separate(bigram, c("word1", "word2"), sep = " ") |> 
+  mutate(word1 = ifelse(word1 %in% malay_slang$slang, malay_slang$translation, word1)) |>
+  mutate(word2 = ifelse(word2 %in% malay_slang$slang, malay_slang$translation, word2)) |>
+  filter(!word1 %in% stop_words$word & str_detect(word1, "[a-z]")) |> 
+  filter(!word2 %in% stop_words$word & str_detect(word2, "[a-z]")) |> 
+  count(word1, word2, thread_id, sort = TRUE) |> 
+  unite(bigram, word1, word2, sep = " ") |> 
+  bind_tf_idf(bigram, thread_id, n) |> 
+  left_join(
+    rbind(threads, threads_2026) |>
+      distinct(thread_id, flair = link_flair_text, title) |>
+      filter(flair %in% c("Politics", "Economy & Finance", "Religion")), 
+    by = "thread_id"
+  )
+```
+
+
+
+
+```{r}
+comments_bigrams |> 
+  filter(!str_detect(bigram, "gif|giphy|emote")) |> 
+  mutate(bigram = str_trim(bigram)) |> 
+  group_by(flair, bigram) |> 
+  summarise(n = sum(n)) |> 
+  slice_max(order_by = n, n = 20) |> 
+  ungroup() |> 
+  ggplot(aes(x = n, 
+             y = tidytext::reorder_within(bigram, by = n, within = flair))) + 
+  geom_col(aes(fill = flair)) + 
+  facet_wrap(~ flair, scales = "free") +  
+  scale_y_reordered() + 
+  scale_fill_viridis_d(guide = "none", 
+                       option = "cividis") + 
+  labs(title = "Most common bigrams by post flair", 
+       x = "Number of occurences", 
+       y = "", 
+       caption = "Source: https://www.kaggle.com/datasets/bwandowando/reddit-rmalaysia-subreddit-dataset") +
+  theme(strip.background = element_rect(fill = "grey20"), 
+        plot.caption = element_text(hjust = .5))
+```
+
+<br>
+
+Subtstantial overlap between politics and religion, given the prominence of the term *ajaran sesat* (heresy)
+
+We can also infer that there are a high proportion of non-Muslims (probably much higher than the national average) in the r/Malaysia subreddit, given the high frequency of mentions about Halal certification, a common talking point amongst Malaysian Chinese, many of whom tend to have strong feelings about Muslim dietary restrictions.  
+
+Contentious issues like the middle east (genocide in Palestine, Iran war)
+
+Common anti-Muslim talking points. 
+Halal certification is 
+Representative of a 
+
+These issues 
+Disastissfaction with Najib's house arrest
+
+
+```{r}
+comment_words |> glimpse()
+  cast_dtm(thread_id, )
+
+comments |> 
+  filter(str_detect(body, "hang tuah|Hang Tuah")) |>
+  sample_n(5) |> 
+  pull(body)
+
+comments_bigrams
+```
+
+## Network graphs
+
+
+```{r}
+set.seed(333)
+
+anwar_words_network <- anwar_words |> 
+  filter(n > 49) |> 
+  pairwise_cor(word, comment_id, sort = TRUE) |> 
+  filter(correlation >= .18) |> 
+  left_join(
+    anwar_words |> 
+      filter(n > 49) |> 
+      pairwise_count(word, comment_id, sort = TRUE), 
+    by = c("item1", "item2")  
+  ) |> 
+  igraph::graph_from_data_frame() |> 
+  ggraph(layout = "kk") +
+  geom_edge_link(aes(alpha = correlation, edge_width = n), colour = "#457b9d", check_overlap = TRUE) +
+  scale_edge_width_continuous(range = c(.1, 3), trans = "log10") +
+  scale_alpha_continuous(range = c(0.01, 0.08)) +
+  geom_node_point(colour = "#457b9d", alpha = 0.2, size = .5) +
+  geom_node_text(aes(label = name), size = 2.7, alpha = .5, 
+                 colour = "#caf0f8") +
+  theme(legend.position = "none", 
+        plot.caption = element_text(hjust = .5, colour = "#219ebc"), 
+        panel.background = element_rect(fill = "#03071e"), 
+        plot.background = element_rect(fill = "#1b263b"), 
+        plot.title = element_text(colour = "#219ebc"), 
+        plot.subtitle = element_text(colour = "#219ebc", size = 10)) + 
+  labs(title = paste0("Network graph of comments related to Anwar Ibrahim, ", 
+                      comments %>% {min(.$created_utc)} %>% 
+                        round_date(unit = "day") %>% str_remove_all(., " UTC"), 
+                      " to ", 
+                       comments %>% {max(.$created_utc)} %>% 
+                        round_date(unit = "day") %>% str_remove_all(., " UTC")), 
+       subtitle = "Line thickness indicates number of comments using those words, transparency indicates correlation between words", 
+       caption = "Source: https://www.kaggle.com/datasets/bwandowando/reddit-rmalaysia-subreddit-dataset")
+
+ggsave(here("plots", "anwar_network_graph.png"), 
+       width = 10, height = 6.5, units = "in", dpi = 300)
+
+```
+
+We can see from the network graph that religion is involved with Anwar, even if he tries to distance himself from it. 
+
+```{r}
+comments_bigrams |> 
+  filter(!str_detect(bigram, "gif|giphy|emote")) |> 
+  filter(n > 15) |> 
+  pairwise_cor(bigram, thread_id, sort = TRUE) |> 
+  filter(correlation >= .13) |> 
+  left_join(
+    comments_bigrams |> 
+      filter(n > 15) |> 
+      pairwise_count(bigram, thread_id, sort = TRUE), 
+    by = c("item1", "item2")  
+  ) |> 
+  igraph::graph_from_data_frame() |> 
+  ggraph(layout = "kk") +
+  geom_edge_link(aes(alpha = correlation, edge_width = n), colour = "#457b9d", check_overlap = TRUE) +
+  scale_edge_width_continuous(range = c(.1, 3), trans = "log10") +
+  scale_alpha_continuous(range = c(0.01, 0.08)) +
+  geom_node_point(colour = "#457b9d", alpha = 0.2, size = .5) +
+  geom_node_text(aes(label = name), size = 2.7, alpha = .5, 
+                 colour = "#caf0f8") +
+  theme(legend.position = "none", 
+        plot.caption = element_text(hjust = .5, colour = "#219ebc"), 
+        panel.background = element_rect(fill = "#03071e"), 
+        plot.background = element_rect(fill = "#1b263b"), 
+        plot.title = element_text(colour = "#219ebc"), 
+        plot.subtitle = element_text(colour = "#219ebc", size = 10)) + 
+  labs(title = paste0("Network graph of comments related to Anwar Ibrahim, ", 
+                      comments %>% {min(.$created_utc)} %>% 
+                        round_date(unit = "day") %>% str_remove_all(., " UTC"), 
+                      " to ", 
+                       comments %>% {max(.$created_utc)} %>% 
+                        round_date(unit = "day") %>% str_remove_all(., " UTC")), 
+       subtitle = "Line thickness indicates number of comments using those words, transparency indicates correlation between words", 
+       caption = "Source: https://www.kaggle.com/datasets/bwandowando/reddit-rmalaysia-subreddit-dataset")
+
+ggsave(here("plots", "bigrams_network_graph.png"), 
+       width = 10, height = 6.5, units = "in", dpi = 300)
+```
+
+
+
+```{r}
+anwar_bigrams <- comments |> 
+  mutate(is_anwar = ifelse(str_detect(title, "Anwar|anwar|pmx|PMX|Pmx|PM|pm") |
+                             str_detect(body, "Anwar|anwar|pmx|PMX|Pmx|PM|pm"), 
+                           1, 0)) |> 
+  filter(is_anwar == 1) |> 
+  filter(!str_detect(body, "Users often report submissions|I am a bot")) |> 
+  mutate(body = str_replace_all(body, "non |Non ", "non-")) |> 
+  mutate(score_trend = case_when(
+    score > 1 ~ "positive", 
+    score == 1 ~ "neutral", 
+    score > 10 ~ "very positive", 
+    score <= 0 ~ "negative"
+  )) |> 
+  select(comment_id, thread_id, body, score, score_trend, flair) |> 
+  mutate(body = remove_url(body)) |> 
+  unnest_tokens(bigram, body, token = "ngrams", n = 2) |> 
+  add_count(bigram) |> 
+  filter(!is.na(bigram)) |> 
+  separate(bigram, c("word1", "word2"), sep = " ") |> 
+  mutate(word1 = ifelse(word1 %in% malay_slang$slang, malay_slang$translation, word1)) |>
+  mutate(word2 = ifelse(word2 %in% malay_slang$slang, malay_slang$translation, word2)) |>
+  filter(!word1 %in% stop_words$word & str_detect(word1, "[a-z]")) |> 
+  filter(!word2 %in% stop_words$word & str_detect(word2, "[a-z]")) |> 
+  count(word1, word2, thread_id, sort = TRUE) |> 
+  unite(bigram, word1, word2, sep = " ") |> 
+  bind_tf_idf(bigram, thread_id, n)
+
+
+```
+
+
+```{r}
+anwar_bigrams_dtm <- anwar_bigrams |> 
+  cast_dtm(thread_id, bigram, n)
+
+anwar_bigrams_lda <- 
+  LDA(anwar_bigrams_dtm, k = 4, control = list(seed = 133))
+
+anwar_bigrams_topics <- tidy(anwar_bigrams_lda, matrix = "beta")
+```
+
+
+
+```{r}
+anwar_bigrams_topics |> 
+  filter(term %out% c("gif giphy", "subreddit message", "performed automatically", "message compose", 
+                      "img.emote", "img emote", "collecting responses", "march till", 
+                      "prime minister", "anwar ibrahim", "match till", 
+                      "report submissions", "removed due", "sensationalised articles", 
+                      "check sources", "unity government", "madani government", 
+                      "datuk seri", "skeptical check", "reduce spam", "parent commenter", 
+                      "misleading contact", "article's claims", "social media")) |> 
+  filter(!str_detect(term, "11.59pm|23rd|emote|26th|blanket")) |> 
+  group_by(topic) |> 
+  slice_max(beta, n = 20) |> 
+  ungroup() |> 
+  arrange(topic, -beta) |> 
+  ggplot(aes(x = beta, y = reorder_within(term, beta, topic), 
+             fill = topic)) + 
+  geom_col() + 
+  facet_wrap(~ topic, scales = "free_y") + 
+  scale_y_reordered()
+```
+```{r}
+comments |> 
+  filter(str_detect(body, "ini semua")) |> 
+  sample_n(5) |> 
+  pull(body)
+```
+
+
+```{r}
+google_rating_bigrams |> 
+  mutate(rating = as.factor(rating)) |> 
+  arrange(desc(n)) |> 
+  group_by(rating) |> 
+  slice(1:15) |> 
+  ungroup() |> 
+  ggplot(aes(x = n, y = reorder_within(bigram, n, rating))) + 
+  geom_col(aes(fill = rating))
+
+malaystopwords |> glimpse()
+malayrootwords |> glimpse()
+```
+
+
+```{r}
+
+google_rating_words <- google_kl_cuisine |> 
+  select(rowid, rating, review) |> 
+  unnest_tokens(word, review) |> 
+  # mutate(word = SnowballC::wordStem(word, language = "porter")) |> 
+  anti_join(stop_words, by = "word") |>
+  add_count(word, rating) 
+
+
+  
+  
+  mutate(count = 1) |> 
+  mutate(
+    bins = case_when(
+    score < 0 & score >= -10 ~ "0_-10",
+    score >= 0 & score <= 10 ~ "0_10", 
+    score > 10 & score <= 30 ~ "11_30", 
+    score > 30 ~ ">30", 
+    TRUE ~ "<-10"),
+    bins = fct_relevel(bins, 
+                       c("<-10", 
+                         "0_-10",
+                         "0_10", 
+                         "11_30",
+                         ">30"))) |>
+  ggplot(aes(x = count, y = bins)) + 
+  geom_col()
+  geom_histogram() + 
+  scale_x_continuous(trans = "pseudo_log", 
+                     breaks = c(-200, -100, -30, 0, 30, 100, 300, 500, 1000))
+  count(score)
+  count(is_anwar)
+```
+
